@@ -394,6 +394,15 @@ function renderStartStep() {
         <div class="mini-card"><strong>향후 활용</strong><p>최신 인공지능 기반 예측모델 개발</p></div>
         <div class="mini-card"><strong>데모 안내</strong><p>이 공개 데모는 현재 브라우저 안에만 저장됩니다. 실제 개인정보 대신 예시 정보를 권장합니다.</p></div>
       </article>
+      <article class="start-card">
+        <p class="eyebrow">Demo Pages</p>
+        <h3>다른 화면도 함께 테스트할 수 있습니다.</h3>
+        <div class="button-row wrap">
+          <a class="secondary-button link-button" href="./admin.html">관리자 페이지</a>
+          <a class="secondary-button link-button" href="./clinician.html">의사용 측정</a>
+          <a class="secondary-button link-button" href="./sensor.html">센서 입력</a>
+        </div>
+      </article>
       ${
         state.showIntroDetails
           ? `<article class="detail-card">

@@ -1,13 +1,19 @@
 # Diabetic-foot_Screening-Wiregene-demo
 
-Wiregene 당뇨발 위험평가 연구 문진의 공개 데모 저장소입니다.
+Wiregene 당뇨발 위험평가 연구 앱의 공개 데모 저장소입니다.
 
-이 저장소는 환자용 문진 화면만 포함합니다. 관리자, 의사용 측정, 센서 입력, 백엔드, DB, 배포용 서버 설정은 포함하지 않습니다.
+이 저장소는 정적 데모용 화면만 포함합니다. 환자용 문진, 관리자, 의사용 측정, 센서 입력 화면을 공개 테스트할 수 있지만, 백엔드와 DB는 포함하지 않습니다.
 
 ## 포함 파일
 
 - `index.html`
+- `admin.html`
+- `clinician.html`
+- `sensor.html`
 - `app.mjs`
+- `admin.mjs`
+- `clinician.mjs`
+- `sensor.mjs`
 - `models.mjs`
 - `storage.mjs`
 - `styles.css`
@@ -18,6 +24,13 @@ Wiregene 당뇨발 위험평가 연구 문진의 공개 데모 저장소입니�
 - 응답 데이터는 서버로 전송되지 않습니다.
 - 입력 내용은 각 사용자의 브라우저 `localStorage`에만 저장됩니다.
 - 공개 테스트용이므로 실제 이름, 휴대폰 번호, 이메일 대신 예시 정보를 사용하는 것을 권장합니다.
+
+## 공개 데모 페이지
+
+- `https://<github-username>.github.io/<repo-name>/`
+- `https://<github-username>.github.io/<repo-name>/admin.html`
+- `https://<github-username>.github.io/<repo-name>/clinician.html`
+- `https://<github-username>.github.io/<repo-name>/sensor.html`
 
 ## 배포 주소 예시
 
@@ -32,5 +45,5 @@ Wiregene 당뇨발 위험평가 연구 문진의 공개 데모 저장소입니�
 ## 주의
 
 - 이 저장소는 공개 데모용입니다.
-- 연구용 실제 데이터 수집이나 관리자 기능 운영에는 사용하지 않습니다.
+- 여러 사용자의 데이터가 서버에 함께 저장되지는 않습니다.
 - 실제 운영은 비공개 백엔드와 DB가 연결된 본 저장소에서 진행합니다.
