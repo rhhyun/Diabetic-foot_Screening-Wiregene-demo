@@ -1,7 +1,12 @@
-import { createInitialClinicianMeasurements } from "./models.mjs";
+import {
+  buildCombinedResearchRecord,
+  createInitialClinicianMeasurements,
+  createInitialQuestionnaireAnswers,
+} from "./models.mjs";
 import {
   exportResearchRecord,
   listSavedResearchRecords,
+  saveNewResearchRecord,
   updateSavedResearchRecord,
 } from "./storage.mjs";
 
@@ -54,7 +59,7 @@ root.addEventListener("click", async (event) => {
   } else if (action === "save-clinical") {
     await saveClinicalMeasurements();
   } else if (action === "export-record") {
-    const record = getSelectedRecord();
+    const record = getDisplayRecord();
     if (record) {
       exportResearchRecord(record);
     }
@@ -106,9 +111,44 @@ function getSelectedRecord() {
   return state.records.find((record) => record.recordId === state.selectedRecordId) ?? null;
 }
 
+function getDisplayRecord() {
+  return getSelectedRecord() ?? createDraftClinicalRecord();
+}
+
+function createDraftClinicalRecord() {
+  const combined = buildCombinedResearchRecord({
+    questionnaireAnswers: createInitialQuestionnaireAnswers(),
+    clinicianMeasurements: structuredClone(state.form),
+  });
+  const now = combined.questionnairePayload.submittedAt ?? new Date().toISOString();
+
+  return {
+    ...combined,
+    recordId: "DEMO-CLINICIAN-DRAFT",
+    createdAt: now,
+    updatedAt: now,
+    patientSummary: {
+      submittedAt: now,
+      sex: "미입력",
+      age: "미입력",
+      appRiskClass: combined.questionnairePayload.internalScores.app_risk_class,
+      activeConcern: combined.questionnairePayload.internalFlags.active_concerning_foot_symptom,
+    },
+  };
+}
+
 async function saveClinicalMeasurements() {
   const selected = getSelectedRecord();
   if (!selected) {
+    const saved = await saveNewResearchRecord(
+      buildCombinedResearchRecord({
+        questionnaireAnswers: createInitialQuestionnaireAnswers(),
+        clinicianMeasurements: structuredClone(state.form),
+      }),
+    );
+    state.selectedRecordId = saved.recordId;
+    await refreshRecords();
+    state.saveMessage = "데모 의사 측정 레코드가 새로 저장되었습니다.";
     return;
   }
 
@@ -125,6 +165,8 @@ async function saveClinicalMeasurements() {
 
 function render() {
   const selected = getSelectedRecord();
+  const displayRecord = getDisplayRecord();
+  const isDraft = !selected;
   root.innerHTML = `
     <main class="app-shell">
       <aside class="side-panel">
@@ -159,21 +201,19 @@ function render() {
           <div class="panel-heading">
             <div>
               <p class="step-caption">의사용 측정 화면</p>
-              <h2>${selected ? "임상 측정값 입력" : "저장된 환자 문진이 필요합니다"}</h2>
+              <h2>${selected ? "임상 측정값 입력" : "데모 의사 측정 입력"}</h2>
               <p class="step-description">
                 ${
                   selected
                     ? "저장된 환자 문진 레코드를 선택하고 monofilament, pulse, TBI, toe pressure, TcPO2, 변형 여부 등을 기록합니다."
-                    : "먼저 환자용 문진을 제출하면 이 화면에서 해당 레코드를 불러와 측정값을 입력할 수 있습니다."
+                    : "저장된 환자 문진이 없어도 데모 측정 폼을 바로 입력할 수 있습니다. 저장하면 이 브라우저에 데모 레코드가 생성됩니다."
                 }
               </p>
             </div>
           </div>
           ${state.saveMessage ? `<div class="save-banner">${escapeHtml(state.saveMessage)}</div>` : ""}
         </header>
-        <div class="panel-body">
-          ${selected ? renderSelectedRecord(selected) : renderEmptyState()}
-        </div>
+        <div class="panel-body">${renderSelectedRecord(displayRecord, isDraft)}</div>
       </section>
     </main>
   `;
@@ -195,7 +235,7 @@ function renderEmptyRecordList() {
   return `
     <div class="empty-card">
       <strong>저장된 환자 문진이 없습니다.</strong>
-      <p>먼저 환자용 문진을 제출하면 여기에서 의사 측정값을 붙일 수 있습니다.</p>
+      <p>오른쪽에서 데모 측정 폼을 바로 입력할 수 있습니다. 저장하면 이 브라우저에 데모 레코드가 생성됩니다.</p>
     </div>
   `;
 }
@@ -209,7 +249,7 @@ function renderEmptyState() {
   `;
 }
 
-function renderSelectedRecord(record) {
+function renderSelectedRecord(record, isDraft = false) {
   const staticFeatures = record.aiFeatureGroups.static;
   const demographics = record.questionnairePayload?.questionnaireData?.demographics ?? {};
   return `
@@ -219,7 +259,10 @@ function renderSelectedRecord(record) {
           <p class="step-caption">연구 레코드</p>
           <h3>${escapeHtml(record.recordId)}</h3>
         </div>
-        <button class="secondary-button small" data-action="export-record">JSON 내보내기</button>
+        <div class="button-row">
+          ${isDraft ? '<span class="badge soft">Demo Draft</span>' : ""}
+          <button class="secondary-button small" data-action="export-record">JSON 내보내기</button>
+        </div>
       </div>
       <div class="summary-grid three">
         ${summaryItem("제출 시각", formatDateTime(record.patientSummary.submittedAt))}
@@ -254,7 +297,7 @@ function renderSelectedRecord(record) {
         ${clinicianRiskField(state.form.iwgdf_confirmed_risk_class)}
       </div>
       <div class="button-row top-gap">
-        <button class="primary-button dark" data-action="save-clinical">측정값 저장</button>
+        <button class="primary-button dark" data-action="save-clinical">${isDraft ? "데모 레코드 저장" : "측정값 저장"}</button>
         <a class="secondary-button link-button" href="./admin.html">관리자 페이지로 이동</a>
         <a class="secondary-button link-button" href="./sensor.html">센서 결과 입력으로 이동</a>
       </div>

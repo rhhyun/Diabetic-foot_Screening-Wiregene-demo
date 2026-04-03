@@ -1,4 +1,5 @@
 import {
+  buildCombinedResearchRecord,
   buildQuestionnairePayload,
   buildQuestionnaireStaticFeatures,
   buildRuleBasedFusionFlags,
@@ -12,6 +13,7 @@ import {
   deleteSavedResearchRecord,
   exportResearchRecord,
   listSavedResearchRecords,
+  saveNewResearchRecord,
   updateSavedResearchRecord,
 } from "./storage.mjs";
 
@@ -149,7 +151,7 @@ root.addEventListener("click", async (event) => {
   } else if (action === "reset-form") {
     syncFormWithSelection();
   } else if (action === "export-record") {
-    const record = getSelectedRecord();
+    const record = getDisplayRecord();
     if (record) {
       exportResearchRecord(record);
     }
@@ -217,6 +219,40 @@ function getSelectedRecord() {
   return state.records.find((record) => record.recordId === state.selectedRecordId) ?? null;
 }
 
+function getDisplayRecord() {
+  return getSelectedRecord() ?? createDraftAdminRecord();
+}
+
+function createDraftAdminRecord() {
+  const questionnairePayload = buildQuestionnairePayload(state.form);
+  const staticFeatures = buildQuestionnaireStaticFeatures(questionnairePayload);
+  const now = questionnairePayload.submittedAt ?? new Date().toISOString();
+  const ruleFusionSignals = createInitialRuleFusionSignals();
+
+  return {
+    recordId: "DEMO-QUESTIONNAIRE-DRAFT",
+    createdAt: now,
+    updatedAt: now,
+    questionnairePayload,
+    clinicianMeasurements: createInitialClinicianMeasurements(),
+    aiFeatureGroups: {
+      static: staticFeatures,
+      clinical: createInitialClinicianMeasurements(),
+      timeSeries: createInitialLongitudinalFeatures(),
+      sensor: createInitialSensorFeatureBundle(),
+    },
+    ruleFusionSignals,
+    ruleFusionFlags: buildRuleBasedFusionFlags(staticFeatures, ruleFusionSignals),
+    patientSummary: {
+      submittedAt: now,
+      sex: labelFor(OPTIONS.gender, state.form.demographics.gender),
+      age: state.form.demographics.age || "미입력",
+      appRiskClass: staticFeatures.app_risk_class,
+      activeConcern: questionnairePayload.internalFlags.active_concerning_foot_symptom,
+    },
+  };
+}
+
 function updateQuestionnaireField(section, field, value) {
   state.form[section][field] = value;
 
@@ -250,6 +286,14 @@ function toggleCondition(value) {
 async function saveQuestionnaireEdits() {
   const selected = getSelectedRecord();
   if (!selected) {
+    const saved = await saveNewResearchRecord(
+      buildCombinedResearchRecord({
+        questionnaireAnswers: structuredClone(state.form),
+      }),
+    );
+    state.selectedRecordId = saved.recordId;
+    await refreshRecords();
+    state.saveMessage = "데모 문진 레코드가 새로 저장되었습니다.";
     return;
   }
 
@@ -314,6 +358,8 @@ async function deleteSelectedRecord() {
 
 function render() {
   const selected = getSelectedRecord();
+  const displayRecord = getDisplayRecord();
+  const isDraft = !selected;
   root.innerHTML = `
     <main class="app-shell admin-shell">
       <aside class="side-panel">
@@ -348,21 +394,19 @@ function render() {
           <div class="panel-heading">
             <div>
               <p class="step-caption">관리자 편집 화면</p>
-              <h2>${selected ? "선택한 환자 문진 수정" : "저장된 환자 문진이 필요합니다"}</h2>
+              <h2>${selected ? "선택한 환자 문진 수정" : "데모 문진 초안 입력"}</h2>
               <p class="step-description">
                 ${
                   selected
                     ? "문진 답변을 수정하면 앱 위험분류와 내부 점수가 함께 다시 계산됩니다. 의사 측정값과 센서 결과는 그대로 유지됩니다."
-                    : "먼저 환자 문진을 제출하면 이 화면에서 저장된 데이터를 확인하고 수정할 수 있습니다."
+                    : "저장된 환자 문진이 없어도 데모 초안을 바로 입력할 수 있습니다. 저장하면 이 브라우저에 데모 레코드가 생성됩니다."
                 }
               </p>
             </div>
           </div>
           ${state.saveMessage ? `<div class="save-banner">${escapeHtml(state.saveMessage)}</div>` : ""}
         </header>
-        <div class="panel-body">
-          ${selected ? renderSelectedRecord(selected) : renderEmptyState()}
-        </div>
+        <div class="panel-body">${renderSelectedRecord(displayRecord, isDraft)}</div>
       </section>
     </main>
   `;
@@ -385,7 +429,7 @@ function renderEmptyRecordList() {
   return `
     <div class="empty-card">
       <strong>저장된 환자 문진이 없습니다.</strong>
-      <p>먼저 환자 문진을 제출한 뒤 관리자 페이지에서 목록을 확인해 주세요.</p>
+      <p>오른쪽에서 데모 초안을 바로 입력할 수 있습니다. 저장하면 이 브라우저에 데모 레코드가 생성됩니다.</p>
     </div>
   `;
 }
@@ -399,7 +443,7 @@ function renderEmptyState() {
   `;
 }
 
-function renderSelectedRecord(record) {
+function renderSelectedRecord(record, isDraft = false) {
   const previewPayload = buildQuestionnairePayload(state.form);
   previewPayload.submittedAt = record.questionnairePayload?.submittedAt ?? previewPayload.submittedAt;
   const previewStatic = buildQuestionnaireStaticFeatures(previewPayload);
@@ -412,7 +456,7 @@ function renderSelectedRecord(record) {
           <h3>${escapeHtml(record.recordId)}</h3>
         </div>
         <div class="button-row">
-          <button class="secondary-button small danger-button" data-action="delete-record">Delete</button>
+          ${isDraft ? '<span class="badge soft">Demo Draft</span>' : '<button class="secondary-button small danger-button" data-action="delete-record">Delete</button>'}
           <button class="secondary-button small" data-action="export-record">JSON 내보내기</button>
           <a class="secondary-button small link-button" href="./clinician.html">의사 측정</a>
           <a class="secondary-button small link-button" href="./sensor.html">센서 입력</a>
@@ -445,10 +489,10 @@ function renderSelectedRecord(record) {
     ${renderComorbiditySection()}
 
     <section class="sticky-footer">
-      <p>수정한 내용은 저장 즉시 같은 환자 레코드에 반영되고, 내부 위험요약도 함께 갱신됩니다.</p>
+      <p>${isDraft ? "저장하면 현재 문진 내용을 기준으로 데모 레코드가 새로 생성됩니다." : "수정한 내용은 저장 즉시 같은 환자 레코드에 반영되고, 내부 위험요약도 함께 갱신됩니다."}</p>
       <div class="button-row">
         <button class="secondary-button" data-action="reset-form">변경 취소</button>
-        <button class="primary-button dark" data-action="save-questionnaire">변경 저장</button>
+        <button class="primary-button dark" data-action="save-questionnaire">${isDraft ? "데모 레코드 저장" : "변경 저장"}</button>
       </div>
     </section>
   `;

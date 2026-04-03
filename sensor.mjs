@@ -1,12 +1,15 @@
 import {
+  buildCombinedResearchRecord,
   buildRuleBasedFusionFlags,
   createInitialLongitudinalFeatures,
+  createInitialQuestionnaireAnswers,
   createInitialRuleFusionSignals,
   createInitialSensorFeatureBundle,
 } from "./models.mjs";
 import {
   exportResearchRecord,
   listSavedResearchRecords,
+  saveNewResearchRecord,
   updateSavedResearchRecord,
 } from "./storage.mjs";
 
@@ -184,7 +187,7 @@ root.addEventListener("click", async (event) => {
   } else if (action === "save-sensor") {
     await saveSensorData();
   } else if (action === "export-record") {
-    const record = getSelectedRecord();
+    const record = getDisplayRecord();
     if (record) {
       exportResearchRecord(record);
     }
@@ -278,9 +281,48 @@ function getSelectedRecord() {
   return state.records.find((record) => record.recordId === state.selectedRecordId) ?? null;
 }
 
+function getDisplayRecord() {
+  return getSelectedRecord() ?? createDraftSensorRecord();
+}
+
+function createDraftSensorRecord() {
+  const combined = buildCombinedResearchRecord({
+    questionnaireAnswers: createInitialQuestionnaireAnswers(),
+    longitudinalFeatures: structuredClone(state.form.timeSeries),
+    sensorFeatureBundle: structuredClone(state.form.sensor),
+    ruleFusionSignals: structuredClone(state.form.ruleSignals),
+  });
+  const now = combined.questionnairePayload.submittedAt ?? new Date().toISOString();
+
+  return {
+    ...combined,
+    recordId: "DEMO-SENSOR-DRAFT",
+    createdAt: now,
+    updatedAt: now,
+    patientSummary: {
+      submittedAt: now,
+      sex: "미입력",
+      age: "미입력",
+      appRiskClass: combined.questionnairePayload.internalScores.app_risk_class,
+      activeConcern: combined.questionnairePayload.internalFlags.active_concerning_foot_symptom,
+    },
+  };
+}
+
 async function saveSensorData() {
   const selected = getSelectedRecord();
   if (!selected) {
+    const saved = await saveNewResearchRecord(
+      buildCombinedResearchRecord({
+        questionnaireAnswers: createInitialQuestionnaireAnswers(),
+        longitudinalFeatures: structuredClone(state.form.timeSeries),
+        sensorFeatureBundle: structuredClone(state.form.sensor),
+        ruleFusionSignals: structuredClone(state.form.ruleSignals),
+      }),
+    );
+    state.selectedRecordId = saved.recordId;
+    await refreshRecords();
+    state.saveMessage = "데모 센서 레코드가 새로 저장되었습니다.";
     return;
   }
 
@@ -380,6 +422,8 @@ function applyCsvEntry(rawKey, rawValue) {
 
 function render() {
   const selected = getSelectedRecord();
+  const displayRecord = getDisplayRecord();
+  const isDraft = !selected;
   root.innerHTML = `
     <main class="app-shell">
       <aside class="side-panel">
@@ -414,12 +458,12 @@ function render() {
           <div class="panel-heading">
             <div>
               <p class="step-caption">센서 입력 화면</p>
-              <h2>${selected ? "센서 측정 결과 입력" : "먼저 환자 레코드를 선택해 주세요"}</h2>
+              <h2>${selected ? "센서 측정 결과 입력" : "데모 센서 입력"}</h2>
               <p class="step-description">
                 ${
                   selected
                     ? "광학, 열영상, 영상, 압력/보행, 섬유형 센서와 시계열 변화량을 한 레코드에 묶어 저장합니다."
-                    : "환자 문진을 먼저 제출한 뒤 이 화면에서 해당 레코드를 선택해 센서 데이터를 연결할 수 있습니다."
+                    : "저장된 환자 문진이 없어도 데모 센서 폼을 바로 입력할 수 있습니다. 저장하면 이 브라우저에 데모 레코드가 생성됩니다."
                 }
               </p>
             </div>
@@ -427,9 +471,7 @@ function render() {
           ${state.saveMessage ? `<div class="save-banner">${escapeHtml(state.saveMessage)}</div>` : ""}
           ${state.csvMessage ? `<div class="summary-banner">${escapeHtml(state.csvMessage)}</div>` : ""}
         </header>
-        <div class="panel-body">
-          ${selected ? renderSelectedRecord(selected) : renderEmptyState()}
-        </div>
+        <div class="panel-body">${renderSelectedRecord(displayRecord, isDraft)}</div>
       </section>
     </main>
   `;
@@ -451,7 +493,7 @@ function renderEmptyRecordList() {
   return `
     <div class="empty-card">
       <strong>저장된 환자 문진이 없습니다.</strong>
-      <p>먼저 환자 문진을 완료하면 센서 결과를 이 화면에서 연결할 수 있습니다.</p>
+      <p>오른쪽에서 데모 센서 폼을 바로 입력할 수 있습니다. 저장하면 이 브라우저에 데모 레코드가 생성됩니다.</p>
     </div>
   `;
 }
@@ -465,7 +507,7 @@ function renderEmptyState() {
   `;
 }
 
-function renderSelectedRecord(record) {
+function renderSelectedRecord(record, isDraft = false) {
   const demographics = record.questionnairePayload?.questionnaireData?.demographics ?? {};
   return `
     <section class="summary-card">
@@ -474,7 +516,10 @@ function renderSelectedRecord(record) {
           <p class="step-caption">연구 레코드</p>
           <h3>${escapeHtml(record.recordId)}</h3>
         </div>
-        <button class="secondary-button small" data-action="export-record">JSON 내보내기</button>
+        <div class="button-row">
+          ${isDraft ? '<span class="badge soft">Demo Draft</span>' : ""}
+          <button class="secondary-button small" data-action="export-record">JSON 내보내기</button>
+        </div>
       </div>
       <div class="summary-grid three">
         ${summaryItem("제출 시각", formatDateTime(record.patientSummary.submittedAt))}
@@ -526,7 +571,7 @@ function renderSelectedRecord(record) {
         ${RULE_SIGNAL_FIELDS.map((field) => renderRuleField(field)).join("")}
       </div>
       <div class="button-row top-gap">
-        <button class="primary-button dark" data-action="save-sensor">센서 결과 저장</button>
+        <button class="primary-button dark" data-action="save-sensor">${isDraft ? "데모 레코드 저장" : "센서 결과 저장"}</button>
       </div>
     </section>
   `;
