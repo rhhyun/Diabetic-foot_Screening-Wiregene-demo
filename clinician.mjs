@@ -9,6 +9,10 @@ import {
   saveNewResearchRecord,
   updateSavedResearchRecord,
 } from "./storage.mjs";
+import {
+  isDemoAdminAuthenticated,
+  renderAdminSessionRequired,
+} from "./auth.mjs";
 
 const root = document.querySelector("#app");
 
@@ -34,11 +38,17 @@ const state = {
 };
 
 render();
-initialize();
+if (isDemoAdminAuthenticated()) {
+  initialize();
+}
 
 root.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
+  if (!isDemoAdminAuthenticated()) {
+    render();
+    return;
+  }
 
   const { action } = target.dataset;
 
@@ -66,6 +76,9 @@ root.addEventListener("click", async (event) => {
 root.addEventListener("input", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) return;
+  if (!isDemoAdminAuthenticated()) {
+    return;
+  }
   const field = target.dataset.field;
   if (!field) return;
   state.form[field] = target.value === "" ? null : Number(target.value);
@@ -154,6 +167,15 @@ async function saveClinical() {
 }
 
 function render() {
+  if (!isDemoAdminAuthenticated()) {
+    root.innerHTML = renderAdminSessionRequired({
+      title: "임상 측정 입력은 관리자 로그인 후 사용할 수 있습니다.",
+      description:
+        "관리자 페이지에서 로그인한 같은 브라우저 세션에서만 임상 측정값을 연구 DB에 연결할 수 있습니다.",
+    });
+    return;
+  }
+
   const selected = getSelectedRecord();
   const working = getWorkingRecord();
   const isDraft = !selected;

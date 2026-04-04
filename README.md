@@ -1,49 +1,69 @@
 # Diabetic-foot_Screening-Wiregene-demo
 
-Wiregene 당뇨발 위험평가 연구 앱의 공개 데모 저장소입니다.
+와이어젠의 당뇨발 조기진단 소프트웨어 역량을 외부에서 바로 확인할 수 있도록 만든 정적 데모입니다.  
+GitHub Pages 같은 공개 환경에서도 `환자 문진`, `관리자 운영`, `임상 입력`, `센서 입력`, `JSON 기반 DB 백업/복원`, `규칙기반 예측 대시보드`를 함께 시연할 수 있도록 구성했습니다.
 
-이 저장소는 정적 데모용 화면만 포함합니다. 환자용 문진, 관리자, 의사용 측정, 센서 입력 화면을 공개 테스트할 수 있지만, 백엔드와 DB는 포함하지 않습니다.
+## 핵심 특징
 
-## 포함 파일
+- `index.html`: 환자 문진 공개 데모
+- `admin.html`: 관리자 로그인, 연구 DB 운영, JSON 가져오기/내보내기, 예측 요약
+- `clinician.html`: 임상 측정 입력
+- `sensor.html`: 센서/시계열 feature 입력, CSV 업로드
+- `storage.mjs`: 브라우저 `localStorage` 기반 record 저장 + 전체 DB JSON 백업/복원
+- `models.mjs`: 문진 점수화, 융합 플래그, 규칙기반 예측/분석 요약
 
-- `index.html`
-- `admin.html`
-- `clinician.html`
-- `sensor.html`
-- `app.mjs`
-- `admin.mjs`
-- `clinician.mjs`
-- `sensor.mjs`
-- `models.mjs`
-- `storage.mjs`
-- `styles.css`
+## 관리자 데모 로그인
 
-## 데모 특성
+- 관리자 ID: `wiregene-admin`
+- 관리자 비밀번호: `WG-demo-2026`
 
-- GitHub Pages에 바로 올릴 수 있는 정적 웹 구조입니다.
-- 응답 데이터는 서버로 전송되지 않습니다.
-- 입력 내용은 각 사용자의 브라우저 `localStorage`에만 저장됩니다.
-- 공개 테스트용이므로 실제 이름, 휴대폰 번호, 이메일 대신 예시 정보를 사용하는 것을 권장합니다.
+주의:
+- 이 로그인은 공개 데모 시연을 위한 브라우저 세션 보호입니다.
+- 실제 운영 서비스용 보안 인증이 아닙니다.
+- 실서비스에서는 반드시 서버 인증과 중앙 DB가 필요합니다.
 
-## 공개 데모 페이지
+## 현재 데모의 저장 방식
+
+- 모든 연구 record는 기본적으로 각 사용자의 브라우저 `localStorage`에 저장됩니다.
+- 따라서 같은 URL이라도 브라우저/기기/사용자마다 DB가 분리됩니다.
+- 이 한계를 보완하기 위해 관리자 페이지에서 전체 연구 DB를 JSON으로 내보내고, 다시 가져와 병합 또는 전체 교체할 수 있게 했습니다.
+
+## 시연 권장 흐름
+
+1. `index.html`에서 환자 문진을 제출합니다.
+2. `admin.html`에 관리자 계정으로 로그인합니다.
+3. 문진 record를 검토하고 필요한 정보를 수정합니다.
+4. `clinician.html`에서 임상 측정값을 같은 record에 추가합니다.
+5. `sensor.html`에서 센서 feature 또는 CSV를 입력합니다.
+6. 필요 시 관리자 페이지에서 전체 DB를 JSON으로 백업합니다.
+
+## 예측 로직
+
+- 현재 예측은 규칙기반(rule-based) 데모입니다.
+- 문진, 임상, 센서, 시계열, 융합 신호를 함께 사용해 다음 항목을 요약합니다.
+  - 6개월 신규 궤양
+  - 6개월 재발 궤양
+  - 지속성 hotspot
+  - 상처 악화
+  - 혈관 평가 의뢰 필요
+  - 압력 분산 실패
+  - 고위험군 전환 가능성
+
+## 배포
+
+정적 파일만으로 배포 가능하므로 GitHub Pages에 바로 올릴 수 있습니다.
 
 - `https://<github-username>.github.io/<repo-name>/`
 - `https://<github-username>.github.io/<repo-name>/admin.html`
 - `https://<github-username>.github.io/<repo-name>/clinician.html`
 - `https://<github-username>.github.io/<repo-name>/sensor.html`
 
-## 배포 주소 예시
+## 실제 서비스로 확장하려면
 
-- `https://<github-username>.github.io/<repo-name>/`
+다음 단계가 필요합니다.
 
-## GitHub Pages 배포 방법
-
-1. 이 폴더를 별도 공개 저장소로 업로드합니다.
-2. 저장소 `Settings > Pages`에서 Source를 `GitHub Actions`로 설정합니다.
-3. `main` 브랜치에 푸시하면 `.github/workflows/deploy-pages.yml`이 자동 배포합니다.
-
-## 주의
-
-- 이 저장소는 공개 데모용입니다.
-- 여러 사용자의 데이터가 서버에 함께 저장되지는 않습니다.
-- 실제 운영은 비공개 백엔드와 DB가 연결된 본 저장소에서 진행합니다.
+- 중앙 DB(PostgreSQL, MySQL, Supabase 등)
+- 서버 인증/권한 관리
+- 관리자/임상/센서 입력에 대한 API
+- 예측 모델 버전 관리와 결과 이력 저장
+- 감사 로그와 개인정보 보호 설계

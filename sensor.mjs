@@ -12,6 +12,10 @@ import {
   saveNewResearchRecord,
   updateSavedResearchRecord,
 } from "./storage.mjs";
+import {
+  isDemoAdminAuthenticated,
+  renderAdminSessionRequired,
+} from "./auth.mjs";
 
 const root = document.querySelector("#app");
 
@@ -164,11 +168,17 @@ const state = {
 };
 
 render();
-initialize();
+if (isDemoAdminAuthenticated()) {
+  initialize();
+}
 
 root.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) {
+    return;
+  }
+  if (!isDemoAdminAuthenticated()) {
+    render();
     return;
   }
 
@@ -201,6 +211,9 @@ root.addEventListener("input", (event) => {
   if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
     return;
   }
+  if (!isDemoAdminAuthenticated()) {
+    return;
+  }
 
   const { section, group, field, type } = target.dataset;
   if (!field) {
@@ -220,6 +233,10 @@ root.addEventListener("input", (event) => {
 root.addEventListener("change", async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) {
+    return;
+  }
+  if (!isDemoAdminAuthenticated()) {
+    render();
     return;
   }
 
@@ -421,6 +438,15 @@ function applyCsvEntry(rawKey, rawValue) {
 }
 
 function render() {
+  if (!isDemoAdminAuthenticated()) {
+    root.innerHTML = renderAdminSessionRequired({
+      title: "센서 입력은 관리자 로그인 후 사용할 수 있습니다.",
+      description:
+        "관리자 페이지에서 로그인한 뒤 같은 브라우저 세션에서만 센서 feature와 CSV 업로드를 연구 DB에 반영할 수 있습니다.",
+    });
+    return;
+  }
+
   const selected = getSelectedRecord();
   const displayRecord = getDisplayRecord();
   const isDraft = !selected;

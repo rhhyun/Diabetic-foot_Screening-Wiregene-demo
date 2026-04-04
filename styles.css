@@ -1039,6 +1039,28 @@ a {
   color: rgba(23, 49, 59, 0.54);
 }
 
+.simple-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+  color: rgba(23, 49, 59, 0.8);
+}
+
+.simple-list li + li {
+  margin-top: 6px;
+}
+
+.secondary-button.is-active {
+  background: rgba(33, 112, 133, 0.12);
+  border-color: rgba(33, 112, 133, 0.28);
+  color: rgba(17, 60, 73, 0.94);
+}
+
+.file-input-wrap input[type="file"] {
+  width: 100%;
+  font-size: 0.92rem;
+}
+
 .empty-card p {
   margin: 8px 0 0;
   line-height: 1.55;
