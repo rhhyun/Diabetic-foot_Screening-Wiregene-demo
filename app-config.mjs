@@ -14,6 +14,9 @@ export function loadAppConfig(rootDir) {
     adminPassword: process.env.ADMIN_PASSWORD || "WG-demo-2026",
     adminDisplayName: process.env.ADMIN_DISPLAY_NAME || "Wiregene Demo Admin",
     sessionTtlHours: Number.parseInt(process.env.SESSION_TTL_HOURS || "12", 10),
+    corsAllowedOrigins: parseOrigins(
+      process.env.CORS_ALLOWED_ORIGINS || "https://rhhyun.github.io",
+    ),
   };
 }
 
@@ -56,4 +59,11 @@ function stripQuotes(value) {
     return value.slice(1, -1);
   }
   return value;
+}
+
+function parseOrigins(value) {
+  return String(value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }

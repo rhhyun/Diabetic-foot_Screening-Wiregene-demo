@@ -5,6 +5,7 @@ import {
   normalizeResearchRecord,
   sortRecords,
 } from "./record-utils.mjs";
+import { getRemoteAccessToken } from "./auth.mjs";
 
 const STORAGE_KEY = "wiregene-diabetic-foot-demo-records";
 const REMOTE_CAPABILITY = {
@@ -303,6 +304,7 @@ async function apiRequest(path, { method = "GET", body } = {}) {
     method,
     credentials: "include",
     headers: {
+      ...createAuthHeader(),
       Accept: "application/json",
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
@@ -330,6 +332,11 @@ function resolveApiUrl(path) {
       : "/api";
 
   return `${base.replace(/\/$/, "")}${path}`;
+}
+
+function createAuthHeader() {
+  const token = getRemoteAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function readErrorMessage(response) {

@@ -45,6 +45,24 @@ export function createAppServer(config = loadAppConfig(ROOT_DIR)) {
 }
 
 async function handleApiRequest({ request, response, url, repository, config, sessionStore }) {
+  applyCorsHeaders(response, request, config);
+
+  if (request.method === "OPTIONS") {
+    if (!isAllowedCorsOrigin(request, config)) {
+      sendJson(response, 403, {
+        ok: false,
+        message: "CORS origin not allowed",
+      });
+      return;
+    }
+
+    response.writeHead(204, {
+      "Cache-Control": "no-store",
+    });
+    response.end();
+    return;
+  }
+
   const adminSession = sessionStore.getSession(request);
 
   if (url.pathname === "/api/health" && request.method === "GET") {
@@ -110,6 +128,7 @@ async function handleApiRequest({ request, response, url, repository, config, se
 
     sendJson(response, 200, {
       ok: true,
+      accessToken: session.sessionId,
       session: sanitizeSession(session),
     });
     return;
@@ -324,6 +343,51 @@ function isSecureRequest(request) {
     request.headers["x-forwarded-proto"] === "https" ||
     String(request.headers.host || "").includes(":443")
   );
+}
+
+function applyCorsHeaders(response, request, config) {
+  const allowedOrigin = getAllowedCorsOrigin(request, config);
+  if (!allowedOrigin) {
+    return;
+  }
+
+  response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  response.setHeader("Access-Control-Allow-Credentials", "true");
+  response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept");
+  response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response.setHeader("Vary", "Origin");
+}
+
+function isAllowedCorsOrigin(request, config) {
+  return Boolean(getAllowedCorsOrigin(request, config));
+}
+
+function getAllowedCorsOrigin(request, config) {
+  const origin = String(request.headers.origin || "").trim();
+  if (!origin) {
+    return "";
+  }
+
+  if (config.corsAllowedOrigins.includes(origin)) {
+    return origin;
+  }
+
+  const sameOrigin = getRequestOrigin(request);
+  if (sameOrigin && origin === sameOrigin) {
+    return origin;
+  }
+
+  return "";
+}
+
+function getRequestOrigin(request) {
+  const host = String(request.headers.host || "").trim();
+  if (!host) {
+    return "";
+  }
+
+  const protocol = isSecureRequest(request) ? "https" : "http";
+  return `${protocol}://${host}`;
 }
 
 function contentTypeFor(filepath) {

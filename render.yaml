@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: wiregene-diabetic-foot-demo
+    runtime: node
+    plan: free
+    region: singapore
+    autoDeployTrigger: commit
+    buildCommand: npm install
+    startCommand: node server.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "10000"
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_DISPLAY_NAME
+        value: Wiregene Demo Admin
+      - key: SESSION_TTL_HOURS
+        value: "12"
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://rhhyun.github.io
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

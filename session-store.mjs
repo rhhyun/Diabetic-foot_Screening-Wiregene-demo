@@ -25,8 +25,7 @@ export function createSessionStore({ ttlHours = 12 } = {}) {
 
     getSession(request) {
       pruneExpiredSessions(sessions, ttlMs);
-      const cookies = parseCookies(request.headers.cookie);
-      const sessionId = cookies[COOKIE_NAME];
+      const sessionId = parseSessionIdFromRequest(request);
       if (!sessionId) {
         return null;
       }
@@ -50,8 +49,7 @@ export function createSessionStore({ ttlHours = 12 } = {}) {
     },
 
     destroySession(request) {
-      const cookies = parseCookies(request.headers.cookie);
-      const sessionId = cookies[COOKIE_NAME];
+      const sessionId = parseSessionIdFromRequest(request);
       if (!sessionId) {
         return false;
       }
@@ -90,6 +88,19 @@ export function createSessionStore({ ttlHours = 12 } = {}) {
       response.setHeader("Set-Cookie", parts.join("; "));
     },
   };
+}
+
+function parseSessionIdFromRequest(request) {
+  const authorization = String(request.headers.authorization || "");
+  if (authorization.startsWith("Bearer ")) {
+    const token = authorization.slice("Bearer ".length).trim();
+    if (token) {
+      return token;
+    }
+  }
+
+  const cookies = parseCookies(request.headers.cookie);
+  return cookies[COOKIE_NAME] || "";
 }
 
 function parseCookies(cookieHeader) {

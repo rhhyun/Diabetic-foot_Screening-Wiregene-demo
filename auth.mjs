@@ -10,6 +10,11 @@ export function getDemoAdminCredentials() {
   return DEMO_ADMIN;
 }
 
+export function getRemoteAccessToken() {
+  const session = getDemoAdminSession();
+  return session?.accessToken ? String(session.accessToken) : "";
+}
+
 export function isDemoAdminAuthenticated() {
   return Boolean(getDemoAdminSession());
 }
@@ -130,6 +135,7 @@ async function tryRemoteLogin(username, password) {
 
   const session = {
     ...response.session,
+    accessToken: response.accessToken || "",
     authMode: "server-session",
   };
   persistSession(session);
@@ -162,6 +168,7 @@ async function tryRemoteSessionLookup() {
 
   const session = {
     ...response.session,
+    accessToken: getRemoteAccessToken(),
     authMode: "server-session",
   };
   persistSession(session);
@@ -203,6 +210,7 @@ async function tryFetchJson(path, { method = "GET", body } = {}) {
       method,
       credentials: "include",
       headers: {
+        ...createAuthHeader(),
         Accept: "application/json",
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
@@ -238,6 +246,11 @@ function resolveApiUrl(path) {
       : "/api";
 
   return `${base.replace(/\/$/, "")}${path}`;
+}
+
+function createAuthHeader() {
+  const token = getRemoteAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function escapeHtml(value) {
