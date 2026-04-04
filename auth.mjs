@@ -126,6 +126,10 @@ async function tryRemoteLogin(username, password) {
     return null;
   }
 
+  if (isRemoteApiUnavailable(response)) {
+    return null;
+  }
+
   if (!response.ok) {
     return {
       ok: false,
@@ -147,9 +151,13 @@ async function tryRemoteLogin(username, password) {
 }
 
 async function tryRemoteLogout() {
-  await tryFetchJson("/auth/logout", {
+  const response = await tryFetchJson("/auth/logout", {
     method: "POST",
   });
+
+  if (!response || isRemoteApiUnavailable(response)) {
+    return;
+  }
 }
 
 async function tryRemoteSessionLookup() {
@@ -158,6 +166,10 @@ async function tryRemoteSessionLookup() {
   });
 
   if (!response) {
+    return undefined;
+  }
+
+  if (isRemoteApiUnavailable(response)) {
     return undefined;
   }
 
@@ -251,6 +263,22 @@ function resolveApiUrl(path) {
 function createAuthHeader() {
   const token = getRemoteAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function isRemoteApiUnavailable(response) {
+  if (!response) {
+    return true;
+  }
+
+  if ([404, 405, 500, 502, 503, 504].includes(Number(response.status))) {
+    return true;
+  }
+
+  if (response.ok && !response.session && response.authenticated === undefined && response.loggedOut === undefined) {
+    return true;
+  }
+
+  return false;
 }
 
 function escapeHtml(value) {

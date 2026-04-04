@@ -554,29 +554,45 @@ function render() {
 }
 
 function renderLoginScreen() {
+  const usesRemoteAuth = state.storageBackend.kind === "remote";
+
   return `
     <main class="completion-shell">
       <section class="completion-card">
         <div class="completion-hero">
           <p class="eyebrow">Admin Login</p>
           <h1>관리자 로그인 후 연구 DB를 운영할 수 있습니다.</h1>
-          <p>이 데모는 GitHub Pages 같은 정적 환경을 전제로 하므로, 중앙 서버 인증 대신 브라우저 세션 기반 관리자 로그인과 JSON 백업/복원 흐름을 함께 제공합니다.</p>
+          <p>${
+            usesRemoteAuth
+              ? "현재 이 페이지는 중앙 서버 인증에 연결되어 있습니다. Render 환경변수에 설정한 관리자 계정으로 로그인하면 중앙 DB를 바로 운영할 수 있습니다."
+              : "이 데모는 GitHub Pages 같은 정적 환경을 전제로 하므로, 중앙 서버 인증 대신 브라우저 세션 기반 관리자 로그인과 JSON 백업/복원 흐름을 함께 제공합니다."
+          }</p>
         </div>
         ${state.auth.error ? `<div class="alert-box danger top-gap">${escapeHtml(state.auth.error)}</div>` : ""}
         <section class="question-card top-gap">
           <div class="question-head">
-            <h3>데모 관리자 인증</h3>
-            <span class="required-pill optional">Demo Only</span>
+            <h3>${usesRemoteAuth ? "서버 관리자 인증" : "데모 관리자 인증"}</h3>
+            <span class="required-pill optional">${usesRemoteAuth ? "Central DB" : "Demo Only"}</span>
           </div>
           <div class="clinician-grid top-gap">
             ${fieldCard("관리자 ID", authField("username", state.auth.username, "text", "관리자 ID를 입력하세요"))}
             ${fieldCard("비밀번호", authField("password", state.auth.password, "password", "비밀번호를 입력하세요"))}
             ${fieldCard(
-              "데모 계정 안내",
+              usesRemoteAuth ? "현재 로그인 안내" : "데모 계정 안내",
               `
-                <p class="helper-text">데모 ID: <strong>${escapeHtml(demoAdmin.username)}</strong></p>
-                <p class="helper-text">데모 비밀번호: <strong>${escapeHtml(demoAdmin.password)}</strong></p>
-                <p class="helper-text">주의: 이 로그인은 공개 데모용 프런트엔드 세션 보호입니다. 실서비스에서는 반드시 서버 인증과 중앙 DB가 필요합니다.</p>
+                ${
+                  usesRemoteAuth
+                    ? `
+                      <p class="helper-text">현재는 GitHub Pages 화면이 Render API에 연결되어 있습니다.</p>
+                      <p class="helper-text">Render Environment에 넣은 <strong>ADMIN_USERNAME</strong>, <strong>ADMIN_PASSWORD</strong> 값으로 로그인해 주세요.</p>
+                      <p class="helper-text">중앙 DB 연결 상태: <strong>${escapeHtml(state.storageBackend.label)}</strong></p>
+                    `
+                    : `
+                      <p class="helper-text">데모 ID: <strong>${escapeHtml(demoAdmin.username)}</strong></p>
+                      <p class="helper-text">데모 비밀번호: <strong>${escapeHtml(demoAdmin.password)}</strong></p>
+                      <p class="helper-text">주의: 이 로그인은 공개 데모용 프런트엔드 세션 보호입니다. 실서비스에서는 반드시 서버 인증과 중앙 DB가 필요합니다.</p>
+                    `
+                }
               `,
               "full-span",
             )}
