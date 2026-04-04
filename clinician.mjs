@@ -12,6 +12,7 @@ import {
 import {
   isDemoAdminAuthenticated,
   renderAdminSessionRequired,
+  syncAdminSession,
 } from "./auth.mjs";
 
 const root = document.querySelector("#app");
@@ -38,14 +39,12 @@ const state = {
 };
 
 render();
-if (isDemoAdminAuthenticated()) {
-  initialize();
-}
+initialize();
 
 root.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
-  if (!isDemoAdminAuthenticated()) {
+  if (!(await ensureAdminSession())) {
     render();
     return;
   }
@@ -86,16 +85,46 @@ root.addEventListener("input", (event) => {
 });
 
 async function initialize() {
-  await refreshRecords();
+  await syncAdminSession({
+    force: true,
+  });
+  if (isDemoAdminAuthenticated()) {
+    await refreshRecords();
+  }
   render();
 }
 
-async function refreshRecords() {
-  state.records = await listSavedResearchRecords();
-  if (!state.selectedRecordId || !state.records.some((record) => record.recordId === state.selectedRecordId)) {
-    state.selectedRecordId = state.records[0]?.recordId ?? null;
+async function ensureAdminSession() {
+  if (isDemoAdminAuthenticated()) {
+    return true;
   }
-  syncFormWithSelection();
+
+  const session = await syncAdminSession({
+    force: true,
+  });
+  return Boolean(session);
+}
+
+async function refreshRecords() {
+  try {
+    state.records = await listSavedResearchRecords();
+    if (!state.selectedRecordId || !state.records.some((record) => record.recordId === state.selectedRecordId)) {
+      state.selectedRecordId = state.records[0]?.recordId ?? null;
+    }
+    syncFormWithSelection();
+  } catch (error) {
+    if (error?.status === 401) {
+      await syncAdminSession({
+        force: true,
+      });
+      state.records = [];
+      state.selectedRecordId = null;
+      syncFormWithSelection();
+      return;
+    }
+
+    throw error;
+  }
 }
 
 function syncFormWithSelection() {

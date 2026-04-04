@@ -27,19 +27,34 @@ jobs:
 
       - name: Prepare static site
         run: |
+          set -euo pipefail
           mkdir -p _site
-          cp index.html _site/
-          cp admin.html _site/
-          cp clinician.html _site/
-          cp sensor.html _site/
-          cp app.mjs _site/
-          cp admin.mjs _site/
-          cp clinician.mjs _site/
-          cp sensor.mjs _site/
-          cp models.mjs _site/
-          cp storage.mjs _site/
-          cp styles.css _site/
+          files=(
+            index.html
+            admin.html
+            clinician.html
+            sensor.html
+            app.mjs
+            admin.mjs
+            clinician.mjs
+            sensor.mjs
+            models.mjs
+            storage.mjs
+            auth.mjs
+            record-utils.mjs
+            runtime-config.js
+            styles.css
+          )
+
+          for file in "${files[@]}"; do
+            test -f "$file"
+            cp "$file" _site/
+          done
+
           touch _site/.nojekyll
+
+      - name: Show prepared files
+        run: ls -la _site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

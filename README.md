@@ -31,8 +31,10 @@
 
 주의:
 
-- 현재 관리자 로그인 자체는 데모용 프런트 세션 보호입니다.
-- 중앙 DB는 Node API를 통해 연결되지만, 실서비스 수준 인증/권한 체계는 별도 고도화가 필요합니다.
+- Node 서버로 접속하면 관리자 인증은 `httpOnly 쿠키 기반 서버 세션`으로 동작합니다.
+- 서버가 없는 정적 데모 환경에서는 기존 브라우저 세션 기반 데모 인증으로 fallback 됩니다.
+- 운영 환경에서는 `.env`의 `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_DISPLAY_NAME`으로 관리자 계정을 바꿀 수 있습니다.
+- 현재는 단일 관리자 계정 데모이므로, 실서비스 수준의 사용자/권한 분리는 추가 고도화가 필요합니다.
 
 ## 중앙 DB 구성 방법
 
@@ -64,6 +66,9 @@ Supabase SQL Editor에서 `supabase-schema.sql` 내용을 실행합니다.
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+- `SESSION_TTL_HOURS`
 
 예시:
 
@@ -72,6 +77,10 @@ HOST=0.0.0.0
 PORT=3000
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ADMIN_USERNAME=wiregene-admin
+ADMIN_PASSWORD=WG-demo-2026
+ADMIN_DISPLAY_NAME=Wiregene Demo Admin
+SESSION_TTL_HOURS=12
 ```
 
 ### 3. 서버 실행
@@ -90,6 +99,9 @@ npm run start
 
 - 정적 프런트 페이지 서빙
 - `/api/health`
+- `/api/auth/session`
+- `/api/auth/login`
+- `/api/auth/logout`
 - `/api/records`
 - `/api/database/export`
 - `/api/database/import`
@@ -129,6 +141,12 @@ npm run start
 - `POST /api/records`
 - `PUT /api/records/:recordId`
 - `DELETE /api/records/:recordId`
+
+권한 규칙:
+
+- `POST /api/records`: 환자 문진 제출용으로 공개 생성 허용
+- `GET /api/records`, `GET /api/records/:recordId`, `PUT`, `DELETE`: 관리자 세션 필요
+- `DB export/import`: 관리자 세션 필요
 
 ### DB Snapshot
 
@@ -178,7 +196,6 @@ node --check record-utils.mjs
 
 ## 다음 권장 단계
 
-- Node API 관리자 인증을 서버 세션 기반으로 고도화
 - Supabase Auth 또는 병원 내부 SSO 연동
 - 연구자/관리자/임상의 권한 분리
 - 감사 로그 추가

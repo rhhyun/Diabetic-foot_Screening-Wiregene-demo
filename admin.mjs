@@ -19,6 +19,7 @@ import {
   isDemoAdminAuthenticated,
   loginDemoAdmin,
   logoutDemoAdmin,
+  syncAdminSession,
 } from "./auth.mjs";
 
 const root = document.querySelector("#app");
@@ -146,9 +147,7 @@ const state = {
 };
 
 render();
-if (state.auth.isAuthenticated) {
-  initialize();
-}
+initialize();
 
 root.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
@@ -161,7 +160,7 @@ root.addEventListener("click", async (event) => {
   if (action === "login-admin") {
     await handleLogin();
   } else if (action === "logout-admin") {
-    handleLogout();
+    await handleLogout();
   } else if (!state.auth.isAuthenticated) {
     return;
   } else if (action === "refresh-records") {
@@ -267,8 +266,11 @@ root.addEventListener("input", (event) => {
 });
 
 async function initialize() {
+  await syncAdminAuthState();
   await refreshStorageBackend();
-  await refreshRecords();
+  if (state.auth.isAuthenticated) {
+    await refreshRecords();
+  }
   render();
 }
 
@@ -278,8 +280,17 @@ async function refreshStorageBackend() {
   });
 }
 
+async function syncAdminAuthState({ force = true } = {}) {
+  const session = await syncAdminSession({
+    force,
+  });
+  state.auth.isAuthenticated = Boolean(session);
+  state.auth.session = session;
+  return session;
+}
+
 async function handleLogin() {
-  const result = loginDemoAdmin(state.auth.username, state.auth.password);
+  const result = await loginDemoAdmin(state.auth.username, state.auth.password);
   if (!result.ok) {
     state.auth.error = result.message;
     render();
@@ -293,8 +304,8 @@ async function handleLogin() {
   await initialize();
 }
 
-function handleLogout() {
-  logoutDemoAdmin();
+async function handleLogout() {
+  await logoutDemoAdmin();
   state.auth.isAuthenticated = false;
   state.auth.session = null;
   state.auth.password = "";
@@ -305,11 +316,26 @@ function handleLogout() {
 }
 
 async function refreshRecords() {
-  state.records = await listSavedResearchRecords();
-  if (!state.selectedRecordId || !state.records.some((record) => record.recordId === state.selectedRecordId)) {
-    state.selectedRecordId = state.records[0]?.recordId ?? null;
+  try {
+    state.records = await listSavedResearchRecords();
+    if (!state.selectedRecordId || !state.records.some((record) => record.recordId === state.selectedRecordId)) {
+      state.selectedRecordId = state.records[0]?.recordId ?? null;
+    }
+    syncFormWithSelection();
+  } catch (error) {
+    if (error?.status === 401) {
+      await syncAdminAuthState({
+        force: true,
+      });
+      state.records = [];
+      state.selectedRecordId = null;
+      syncFormWithSelection();
+      state.dbMessage = "서버 관리자 세션이 만료되었습니다. 다시 로그인해 주세요.";
+      return;
+    }
+
+    throw error;
   }
-  syncFormWithSelection();
 }
 
 function syncFormWithSelection() {

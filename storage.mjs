@@ -311,7 +311,9 @@ async function apiRequest(path, { method = "GET", body } = {}) {
 
   if (!response.ok) {
     const message = await readErrorMessage(response);
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
 
   if (response.status === 204) {
