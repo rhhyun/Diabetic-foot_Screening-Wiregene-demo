@@ -7,6 +7,7 @@ import {
   deleteSavedResearchRecord,
   exportResearchDatabaseSnapshot,
   exportResearchRecord,
+  getStorageBackendStatus,
   importResearchDatabaseSnapshot,
   listSavedResearchRecords,
   saveNewResearchRecord,
@@ -130,6 +131,11 @@ const state = {
   saveMessage: "",
   dbMessage: "",
   importMode: "merge",
+  storageBackend: {
+    kind: "local",
+    label: "Browser localStorage",
+    detail: "정적 데모 모드",
+  },
   auth: {
     username: demoAdmin.username,
     password: "",
@@ -159,6 +165,7 @@ root.addEventListener("click", async (event) => {
   } else if (!state.auth.isAuthenticated) {
     return;
   } else if (action === "refresh-records") {
+    await refreshStorageBackend();
     await refreshRecords();
   } else if (action === "select-record") {
     state.selectedRecordId = target.dataset.recordId;
@@ -174,7 +181,7 @@ root.addEventListener("click", async (event) => {
   } else if (action === "export-record") {
     exportResearchRecord(getWorkingRecord());
   } else if (action === "export-database") {
-    exportResearchDatabaseSnapshot();
+    await exportResearchDatabaseSnapshot();
     state.dbMessage = "현재 브라우저의 연구 DB를 JSON으로 내보냈습니다.";
   } else if (action === "set-import-mode") {
     state.importMode = target.dataset.mode === "replace" ? "replace" : "merge";
@@ -209,6 +216,7 @@ root.addEventListener("change", async (event) => {
         mode: state.importMode,
       });
       state.dbMessage = result.message;
+      await refreshStorageBackend();
       await refreshRecords();
     } catch {
       state.dbMessage = "JSON 형식이 올바르지 않거나 연구 DB 형식을 인식하지 못했습니다.";
@@ -259,8 +267,15 @@ root.addEventListener("input", (event) => {
 });
 
 async function initialize() {
+  await refreshStorageBackend();
   await refreshRecords();
   render();
+}
+
+async function refreshStorageBackend() {
+  state.storageBackend = await getStorageBackendStatus({
+    forceRefresh: true,
+  });
 }
 
 async function handleLogin() {
@@ -431,6 +446,7 @@ function render() {
         <section class="progress-card">
           <p class="eyebrow tint">운영 현황</p>
           <p class="metric-value">${state.records.length}</p>
+          <p class="helper-text">${escapeHtml(state.storageBackend.label)} · ${escapeHtml(state.storageBackend.detail)}</p>
           <p class="progress-copy">브라우저에 저장된 연구 record 수</p>
           <div class="button-row compact top-gap">
             <button class="secondary-button small" data-action="refresh-records">새로고침</button>
@@ -466,6 +482,7 @@ function render() {
               <span class="badge">Admin Edit</span>
               <span class="badge soft">${isDraft ? "Draft" : "Saved Record"}</span>
               <span class="badge warm">${insights.predictionSummary.overallLevel}</span>
+              <span class="badge soft">${escapeHtml(state.storageBackend.kind === "remote" ? "Central DB" : "Browser DB")}</span>
             </div>
             <div class="top-copyright">${escapeHtml(state.auth.session?.displayName ?? demoAdmin.displayName)}</div>
           </div>

@@ -1,0 +1,10 @@
+{
+  "name": "diabetic-foot-screening-wiregene-demo",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check supabase-rest.mjs && node --check server/lib/env.mjs && node --check storage.mjs && node --check admin.mjs && node --check clinician.mjs && node --check sensor.mjs && node --check models.mjs && node --check auth.mjs && node --check record-utils.mjs"
+  }
+}

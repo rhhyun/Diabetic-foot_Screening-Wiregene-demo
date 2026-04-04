@@ -1,0 +1,1 @@
+window.WIREGENE_REMOTE_API_BASE = window.WIREGENE_REMOTE_API_BASE || "/api";
