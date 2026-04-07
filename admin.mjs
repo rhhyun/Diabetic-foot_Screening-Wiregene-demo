@@ -775,11 +775,14 @@ function renderHistorySection() {
 function renderNeuropathySection() {
   const n = state.form.neuropathy;
   return renderSectionCard("신경병증 증상", `
-    ${fieldCard("발 저림", selectField("neuropathy", "numbness", n.numbness, OPTIONS.frequency4))}
-    ${fieldCard("발바닥 감각 저하", selectField("neuropathy", "reducedSoleSensation", n.reducedSoleSensation, OPTIONS.frequency4))}
-    ${fieldCard("화끈거림", selectField("neuropathy", "burning", n.burning, OPTIONS.frequency4))}
-    ${fieldCard("야간 통증", selectField("neuropathy", "nightPain", n.nightPain, OPTIONS.nightPain))}
-    ${fieldCard("온도 감각 저하", selectField("neuropathy", "temperatureLoss", n.temperatureLoss, OPTIONS.yesNoUnknown))}
+    ${fieldCard("시리다", selectField("neuropathy", "achingCold", n.achingCold, OPTIONS.frequency4))}
+    ${fieldCard("저리다", selectField("neuropathy", "numbness", n.numbness, OPTIONS.frequency4))}
+    ${fieldCard("화끈거린다", selectField("neuropathy", "burning", n.burning, OPTIONS.frequency4))}
+    ${fieldCard("콕콕 쑤시는 듯하다", selectField("neuropathy", "stabbing", n.stabbing, OPTIONS.frequency4))}
+    ${fieldCard("감각이 떨어진다", selectField("neuropathy", "sensoryLoss", n.sensoryLoss, OPTIONS.frequency4))}
+    ${fieldCard("모래를 밟는 느낌이다", selectField("neuropathy", "sandFeeling", n.sandFeeling, OPTIONS.frequency4))}
+    ${fieldCard("발바닥에 종이가 붙어 있는 느낌이다", selectField("neuropathy", "paperFeeling", n.paperFeeling, OPTIONS.frequency4))}
+    ${fieldCard("밤에 더 심하다", selectField("neuropathy", "worseAtNight", n.worseAtNight, OPTIONS.frequency4))}
   `);
 }
 
@@ -830,6 +833,8 @@ function renderComorbiditySection() {
   return renderSectionCard("동반질환", `
     ${fieldCard("흡연 상태", selectField("comorbidity", "smokingStatus", c.smokingStatus, OPTIONS.smoking))}
     ${fieldCard("신장질환/투석", selectField("comorbidity", "kidneyDiseaseOrDialysis", c.kidneyDiseaseOrDialysis, OPTIONS.yesNoUnknown))}
+    ${fieldCard("면역억제제 복용", selectField("comorbidity", "immunosuppressantUse", c.immunosuppressantUse, OPTIONS.yesNo))}
+    ${fieldCard("신장이식 여부", selectField("comorbidity", "kidneyTransplant", c.kidneyTransplant, OPTIONS.yesNo))}
     ${fieldCard("시야 문제", selectField("comorbidity", "visionDifficulty", c.visionDifficulty, OPTIONS.yesNo))}
     ${fieldCard("자가 발 관리 어려움", selectField("comorbidity", "selfCareDifficulty", c.selfCareDifficulty, OPTIONS.yesNo))}
   `);

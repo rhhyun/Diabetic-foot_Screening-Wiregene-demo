@@ -27,11 +27,14 @@ export function createInitialQuestionnaireAnswers() {
       diagnosedConditions: [],
     },
     neuropathy: {
+      achingCold: null,
       numbness: null,
-      reducedSoleSensation: null,
       burning: null,
-      nightPain: null,
-      temperatureLoss: null,
+      stabbing: null,
+      sensoryLoss: null,
+      sandFeeling: null,
+      paperFeeling: null,
+      worseAtNight: null,
     },
     ischemia: {
       walkingPainRelievedByRest: null,
@@ -63,6 +66,8 @@ export function createInitialQuestionnaireAnswers() {
     comorbidity: {
       smokingStatus: null,
       kidneyDiseaseOrDialysis: null,
+      immunosuppressantUse: null,
+      kidneyTransplant: null,
       visionDifficulty: null,
       selfCareDifficulty: null,
     },
@@ -171,23 +176,30 @@ export function createInitialPredictionEndpoints() {
   };
 }
 
+const NEUROPATHY_SUSPECT_THRESHOLD = 9;
+
 export function buildQuestionnairePayload(answers) {
   const historyScore =
     valueIf(answers.history.ulcerHistory === "YES", 4) +
     valueIf(answers.history.amputationHistory === "YES", 4) +
     valueIf(answers.history.admissionOrProcedureHistory === "YES", 2) +
-    valueIf(answers.comorbidity.kidneyDiseaseOrDialysis === "YES", 3);
+    valueIf(answers.comorbidity.kidneyDiseaseOrDialysis === "YES", 3) +
+    valueIf(answers.comorbidity.immunosuppressantUse === "YES", 2) +
+    valueIf(answers.comorbidity.kidneyTransplant === "YES", 2);
 
   const diagnosedNeuropathy = answers.history.diagnosedConditions.includes("NEUROPATHY");
   const diagnosedPad = answers.history.diagnosedConditions.includes("PAD");
   const diagnosedDiabeticFoot = answers.history.diagnosedConditions.includes("DIABETIC_FOOT");
 
   const neuropathyScore =
+    frequency4Score(answers.neuropathy.achingCold) +
     frequency4Score(answers.neuropathy.numbness) +
-    frequency4Score(answers.neuropathy.reducedSoleSensation) +
     frequency4Score(answers.neuropathy.burning) +
-    frequency4Score(answers.neuropathy.nightPain) +
-    valueIf(answers.neuropathy.temperatureLoss === "YES", 2);
+    frequency4Score(answers.neuropathy.stabbing) +
+    frequency4Score(answers.neuropathy.sensoryLoss) +
+    frequency4Score(answers.neuropathy.sandFeeling) +
+    frequency4Score(answers.neuropathy.paperFeeling) +
+    frequency4Score(answers.neuropathy.worseAtNight);
 
   const ischemiaScore =
     valueIf(answers.ischemia.walkingPainRelievedByRest === "YES", 2) +
@@ -216,7 +228,7 @@ export function buildQuestionnairePayload(answers) {
     walkingTimeScore(answers.footwear.walkingTime) +
     valueIf(answers.footwear.gaitImbalance === "YES", 2);
 
-  const neuropathySuspect = neuropathyScore >= 5 || diagnosedNeuropathy;
+  const neuropathySuspect = neuropathyScore >= NEUROPATHY_SUSPECT_THRESHOLD || diagnosedNeuropathy;
   const padSuspect =
     ischemiaScore >= 4 || diagnosedPad || answers.ischemia.circulationDiagnosis === "YES";
   const highRiskFootState = footStatusScore >= 3 || diagnosedDiabeticFoot;
@@ -224,6 +236,8 @@ export function buildQuestionnairePayload(answers) {
   const hxUlcer = answers.history.ulcerHistory === "YES";
   const hxAmputation = answers.history.amputationHistory === "YES";
   const esrd = answers.comorbidity.kidneyDiseaseOrDialysis === "YES";
+  const immunosuppressed = answers.comorbidity.immunosuppressantUse === "YES";
+  const kidneyTransplant = answers.comorbidity.kidneyTransplant === "YES";
 
   let appRiskClass = 0;
 
@@ -240,7 +254,7 @@ export function buildQuestionnairePayload(answers) {
   }
 
   return {
-    questionnaireVersion: "iwgdf-2024-patient-v1",
+    questionnaireVersion: "iwgdf-2024-patient-v2",
     source: "wiregene-diabetic-foot-screening",
     submittedAt: new Date().toISOString(),
     questionnaireData: structuredClone(answers),
@@ -248,6 +262,8 @@ export function buildQuestionnairePayload(answers) {
       hx_ulcer: hxUlcer,
       hx_amputation: hxAmputation,
       esrd,
+      immunosuppressed,
+      kidney_transplant: kidneyTransplant,
       neuropathy_suspect: neuropathySuspect,
       pad_suspect: padSuspect,
       high_risk_foot_state: highRiskFootState,
@@ -288,6 +304,8 @@ export function buildQuestionnaireStaticFeatures(questionnairePayload) {
         : null,
     smoking_status: questionnaireData.comorbidity.smokingStatus,
     esrd: internalFlags.esrd,
+    immunosuppressed: internalFlags.immunosuppressed,
+    kidney_transplant: internalFlags.kidney_transplant,
     vision_problem: questionnaireData.comorbidity.visionDifficulty === "YES",
     selfcare_difficulty: questionnaireData.comorbidity.selfCareDifficulty === "YES",
     hx_ulcer: internalFlags.hx_ulcer,
@@ -313,7 +331,7 @@ export function buildRuleBasedFusionFlags(staticFeatures, signals) {
       signals.perfusion_low &&
       signals.temp_asymmetry,
     pre_ulcer_risk_strengthened:
-      staticFeatures.neuropathy_score >= 5 &&
+      staticFeatures.neuropathy_score >= NEUROPATHY_SUSPECT_THRESHOLD &&
       signals.pressure_high &&
       signals.callus_score_high,
     recurrence_risk_strengthened:
@@ -350,6 +368,8 @@ export function buildResearchInsights({
     scoredSignal(answers.currentFoot.wound === "YES", 14, "문진상 현재 상처가 보고되었습니다."),
     scoredSignal(answers.currentFoot.redness === "YES", 6, "문진상 발적이 보고되었습니다."),
     scoredSignal(answers.currentFoot.swellingOrHeat === "YES", 6, "문진상 부종 또는 열감이 보고되었습니다."),
+    scoredSignal(flags.immunosuppressed, 8, "면역억제제 복용력이 있어 상처 악화 및 치유 지연 위험을 높입니다."),
+    scoredSignal(flags.kidney_transplant, 6, "신장이식 병력이 있어 고위험 추적관찰이 필요합니다."),
     scoredSignal(clinicianMeasurements.active_wound_present === true, 18, "임상 입력에서 활동성 상처가 확인되었습니다."),
     scoredSignal(clinicianMeasurements.clinician_redness === true, 8, "임상 입력에서 발적이 보고되었습니다."),
     scoredSignal(clinicianMeasurements.clinician_callus === true, 6, "임상 입력에서 굳은살이 보고되었습니다."),
@@ -374,6 +394,8 @@ export function buildResearchInsights({
     scoredSignal(ruleFusionFlags.recurrence_risk_strengthened, 12, "병력과 hotspot 지속 신호가 재발 위험을 강화합니다."),
     scoredSignal(ruleFusionSignals.history_score_high, 8, "병력 관련 강화 신호가 있습니다."),
     scoredSignal(ruleFusionSignals.hotspot_persistence, 8, "열 hotspot 지속 신호가 있습니다."),
+    scoredSignal(flags.immunosuppressed, 8, "면역억제제 복용력이 있어 상처 재발 및 악화 위험을 높입니다."),
+    scoredSignal(flags.kidney_transplant, 6, "신장이식 병력이 있어 치유 과정 추적이 더 중요합니다."),
     scoredSignal(valueAtLeast(thermal.hotspot_persistence_days, 5), 8, "hotspot 지속 기간이 길어지고 있습니다."),
     scoredSignal(clinicianMeasurements.active_wound_present === true, 10, "활동성 상처가 남아 있어 재발 위험이 높습니다."),
     scoredSignal(scores.app_risk_class >= 2, 8, "기본 분류상 고위험에 가깝습니다."),
@@ -395,6 +417,8 @@ export function buildResearchInsights({
     scoredSignal(answers.currentFoot.wound === "YES", 18, "문진상 현재 상처가 보고되었습니다."),
     scoredSignal(answers.currentFoot.redness === "YES", 8, "문진상 발적이 보고되었습니다."),
     scoredSignal(answers.currentFoot.swellingOrHeat === "YES", 8, "문진상 부종 또는 열감이 보고되었습니다."),
+    scoredSignal(flags.immunosuppressed, 10, "면역억제제 복용력이 있어 상처 악화 및 치유 지연 위험이 큽니다."),
+    scoredSignal(flags.kidney_transplant, 6, "신장이식 병력이 있어 창상 회복 지연 가능성을 고려해야 합니다."),
     scoredSignal(clinicianMeasurements.active_wound_present === true, 20, "임상 입력에서 활동성 상처가 확인되었습니다."),
     scoredSignal(clinicianMeasurements.clinician_infection_suspect === true, 18, "임상 입력에서 감염 의심이 있습니다."),
     scoredSignal(clinicianMeasurements.clinician_edema === true, 8, "임상 입력에서 부종이 확인되었습니다."),
@@ -435,7 +459,11 @@ export function buildResearchInsights({
   ]);
 
   const highRiskTransition = scorePredictionEndpoint("고위험군 전환", [
-    scoredSignal(scores.app_risk_class <= 1 && scores.neuropathy_score >= 5, 10, "문진상 신경병증 점수가 증가했습니다."),
+    scoredSignal(
+      scores.app_risk_class <= 1 && scores.neuropathy_score >= NEUROPATHY_SUSPECT_THRESHOLD,
+      10,
+      "문진상 신경병증 점수가 증가했습니다.",
+    ),
     scoredSignal(scores.app_risk_class <= 1 && scores.ischemia_score >= 4, 10, "문진상 허혈 점수가 증가했습니다."),
     scoredSignal(valueAtLeast(clinicianMeasurements.iwgdf_confirmed_risk_class, 2), 22, "임상 분류에서 Risk 2 이상이 확인되었습니다."),
     scoredSignal(clinicianMeasurements.monofilament_abnormal === true, 10, "모노필라멘트 이상이 확인되었습니다."),

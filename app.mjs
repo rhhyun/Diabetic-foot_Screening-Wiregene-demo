@@ -472,11 +472,14 @@ function renderNeuropathyStep() {
   const neuropathy = state.questionnaire.neuropathy;
   return `
     ${infoPanel("최근 3개월 기준으로 가장 가까운 답을 선택해 주세요.", "neutral")}
-    ${questionCard("발이 저리거나 감각이 둔한 느낌이 있습니까?", choiceGrid("neuropathy", "numbness", neuropathy.numbness, OPTIONS.frequency4))}
-    ${questionCard("발바닥 감각이 둔해졌다고 느낀 적이 있습니까?", choiceGrid("neuropathy", "reducedSoleSensation", neuropathy.reducedSoleSensation, OPTIONS.frequency4))}
-    ${questionCard("발이 화끈거리거나 타는 듯한 느낌이 있습니까?", choiceGrid("neuropathy", "burning", neuropathy.burning, OPTIONS.frequency4))}
-    ${questionCard("밤에 발 통증 또는 불편감이 심해집니까?", choiceGrid("neuropathy", "nightPain", neuropathy.nightPain, OPTIONS.nightPain))}
-    ${questionCard("뜨거운 바닥이나 차가운 바닥을 잘 못 느낀다고 생각합니까?", choiceGrid("neuropathy", "temperatureLoss", neuropathy.temperatureLoss, OPTIONS.yesNoUnknown))}
+    ${questionCard("시리다", choiceGrid("neuropathy", "achingCold", neuropathy.achingCold, OPTIONS.frequency4))}
+    ${questionCard("저리다", choiceGrid("neuropathy", "numbness", neuropathy.numbness, OPTIONS.frequency4))}
+    ${questionCard("화끈거린다", choiceGrid("neuropathy", "burning", neuropathy.burning, OPTIONS.frequency4))}
+    ${questionCard("콕콕 쑤시는 듯하다", choiceGrid("neuropathy", "stabbing", neuropathy.stabbing, OPTIONS.frequency4))}
+    ${questionCard("감각이 떨어진다", choiceGrid("neuropathy", "sensoryLoss", neuropathy.sensoryLoss, OPTIONS.frequency4))}
+    ${questionCard("모래를 밟는 느낌이다", choiceGrid("neuropathy", "sandFeeling", neuropathy.sandFeeling, OPTIONS.frequency4))}
+    ${questionCard("발바닥에 종이가 붙어 있는 느낌이다", choiceGrid("neuropathy", "paperFeeling", neuropathy.paperFeeling, OPTIONS.frequency4))}
+    ${questionCard("밤에 더 심하다", choiceGrid("neuropathy", "worseAtNight", neuropathy.worseAtNight, OPTIONS.frequency4))}
   `;
 }
 
@@ -543,6 +546,8 @@ function renderComorbidityStep() {
   return `
     ${questionCard("현재 흡연 중입니까?", choiceGrid("comorbidity", "smokingStatus", comorbidity.smokingStatus, OPTIONS.smoking))}
     ${questionCard("신장질환 또는 투석을 받고 있습니까?", choiceGrid("comorbidity", "kidneyDiseaseOrDialysis", comorbidity.kidneyDiseaseOrDialysis, OPTIONS.yesNoUnknown))}
+    ${questionCard("면역억제제를 복용 중입니까?", choiceGrid("comorbidity", "immunosuppressantUse", comorbidity.immunosuppressantUse, OPTIONS.yesNo))}
+    ${questionCard("신장이식을 받은 적이 있습니까?", choiceGrid("comorbidity", "kidneyTransplant", comorbidity.kidneyTransplant, OPTIONS.yesNo))}
     ${questionCard("눈이 잘 보이지 않아 발을 직접 확인하기 어렵습니까?", choiceGrid("comorbidity", "visionDifficulty", comorbidity.visionDifficulty, OPTIONS.yesNo))}
     ${questionCard("혼자 발 관리가 어렵습니까?", choiceGrid("comorbidity", "selfCareDifficulty", comorbidity.selfCareDifficulty, OPTIONS.yesNo))}
   `;
@@ -584,11 +589,14 @@ function renderSummaryStep() {
       ["의사 진단 이력", q.history.diagnosedConditions.length ? q.history.diagnosedConditions.map((value) => labelFor(OPTIONS.diagnosedConditions, value)).join(", ") : "미입력"],
     ])}
     ${summarySection("발 저림·통증", 5, [
-      ["발 저림", labelFor(OPTIONS.frequency4, q.neuropathy.numbness)],
-      ["발바닥 감각 둔화", labelFor(OPTIONS.frequency4, q.neuropathy.reducedSoleSensation)],
-      ["화끈거림", labelFor(OPTIONS.frequency4, q.neuropathy.burning)],
-      ["야간 통증", labelFor(OPTIONS.nightPain, q.neuropathy.nightPain)],
-      ["온도 감각 저하", labelFor(OPTIONS.yesNoUnknown, q.neuropathy.temperatureLoss)],
+      ["시리다", labelFor(OPTIONS.frequency4, q.neuropathy.achingCold)],
+      ["저리다", labelFor(OPTIONS.frequency4, q.neuropathy.numbness)],
+      ["화끈거린다", labelFor(OPTIONS.frequency4, q.neuropathy.burning)],
+      ["콕콕 쑤시는 듯하다", labelFor(OPTIONS.frequency4, q.neuropathy.stabbing)],
+      ["감각이 떨어진다", labelFor(OPTIONS.frequency4, q.neuropathy.sensoryLoss)],
+      ["모래를 밟는 느낌이다", labelFor(OPTIONS.frequency4, q.neuropathy.sandFeeling)],
+      ["발바닥에 종이가 붙어 있는 느낌이다", labelFor(OPTIONS.frequency4, q.neuropathy.paperFeeling)],
+      ["밤에 더 심하다", labelFor(OPTIONS.frequency4, q.neuropathy.worseAtNight)],
     ])}
     ${summarySection("혈액순환 증상", 6, [
       ["보행 후 쉬면 호전", labelFor(OPTIONS.yesNoUnknown, q.ischemia.walkingPainRelievedByRest)],
@@ -616,6 +624,8 @@ function renderSummaryStep() {
       ["보행 불균형", labelFor(OPTIONS.yesNoUnknown, q.footwear.gaitImbalance)],
       ["흡연 상태", labelFor(OPTIONS.smoking, q.comorbidity.smokingStatus)],
       ["신장질환/투석", labelFor(OPTIONS.yesNoUnknown, q.comorbidity.kidneyDiseaseOrDialysis)],
+      ["면역억제제 복용", labelFor(OPTIONS.yesNo, q.comorbidity.immunosuppressantUse)],
+      ["신장이식 여부", labelFor(OPTIONS.yesNo, q.comorbidity.kidneyTransplant)],
       ["시야 문제", labelFor(OPTIONS.yesNo, q.comorbidity.visionDifficulty)],
       ["혼자 발 관리 어려움", labelFor(OPTIONS.yesNo, q.comorbidity.selfCareDifficulty)],
       ["추적 문진 알림 동의", labelFor(OPTIONS.yesNo, q.research.followUpConsent)],
@@ -822,11 +832,14 @@ function validateStep(stepIndex) {
     if (!q.history.diagnosedConditions.length) errors.push("의사 진단 이력을 하나 이상 선택해 주세요.");
   }
   if (stepIndex === 5) {
-    requireValue(q.neuropathy.numbness, "발 저림 또는 감각 둔함", errors);
-    requireValue(q.neuropathy.reducedSoleSensation, "발바닥 감각 둔화", errors);
-    requireValue(q.neuropathy.burning, "발의 화끈거림", errors);
-    requireValue(q.neuropathy.nightPain, "야간 통증 또는 불편감", errors);
-    requireValue(q.neuropathy.temperatureLoss, "온도 감각 저하 여부", errors);
+    requireValue(q.neuropathy.achingCold, "시리다", errors);
+    requireValue(q.neuropathy.numbness, "저리다", errors);
+    requireValue(q.neuropathy.burning, "화끈거린다", errors);
+    requireValue(q.neuropathy.stabbing, "콕콕 쑤시는 듯하다", errors);
+    requireValue(q.neuropathy.sensoryLoss, "감각이 떨어진다", errors);
+    requireValue(q.neuropathy.sandFeeling, "모래를 밟는 느낌이다", errors);
+    requireValue(q.neuropathy.paperFeeling, "발바닥에 종이가 붙어 있는 느낌이다", errors);
+    requireValue(q.neuropathy.worseAtNight, "밤에 더 심하다", errors);
   }
   if (stepIndex === 6) {
     requireValue(q.ischemia.walkingPainRelievedByRest, "보행 시 통증 후 휴식 시 호전 여부", errors);
@@ -857,6 +870,8 @@ function validateStep(stepIndex) {
   if (stepIndex === 10) {
     requireValue(q.comorbidity.smokingStatus, "흡연 상태", errors);
     requireValue(q.comorbidity.kidneyDiseaseOrDialysis, "신장질환 또는 투석 여부", errors);
+    requireValue(q.comorbidity.immunosuppressantUse, "면역억제제 복용 여부", errors);
+    requireValue(q.comorbidity.kidneyTransplant, "신장이식 여부", errors);
     requireValue(q.comorbidity.visionDifficulty, "시야 문제 여부", errors);
     requireValue(q.comorbidity.selfCareDifficulty, "혼자 발 관리 어려움 여부", errors);
   }
