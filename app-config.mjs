@@ -25,6 +25,10 @@ export function loadAppConfig(rootDir) {
     adminUsername: process.env.ADMIN_USERNAME || "wiregene-admin",
     adminPassword: process.env.ADMIN_PASSWORD || "WG-demo-2026",
     adminDisplayName: process.env.ADMIN_DISPLAY_NAME || "Wiregene Demo Admin",
+    sessionSecret:
+      process.env.SESSION_SECRET ||
+      process.env.ADMIN_PASSWORD ||
+      "wiregene-diabetic-foot-demo-session",
     sessionTtlHours: Number.parseInt(process.env.SESSION_TTL_HOURS || "12", 10),
     corsAllowedOrigins: parseOrigins(
       process.env.CORS_ALLOWED_ORIGINS ||

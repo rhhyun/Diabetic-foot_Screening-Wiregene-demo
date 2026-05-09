@@ -48,6 +48,7 @@ export function createAppRuntime(config = loadAppConfig(ROOT_DIR)) {
   const repository = createRepository(config);
   const sessionStore = createSessionStore({
     ttlHours: config.sessionTtlHours,
+    secret: config.sessionSecret,
   });
 
   return {

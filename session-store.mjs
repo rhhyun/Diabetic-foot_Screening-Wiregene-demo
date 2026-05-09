@@ -2,58 +2,50 @@ import crypto from "node:crypto";
 
 const COOKIE_NAME = "wiregene_admin_session";
 
-export function createSessionStore({ ttlHours = 12 } = {}) {
+export function createSessionStore({ ttlHours = 12, secret = "wiregene-session" } = {}) {
   const ttlMs = ttlHours * 60 * 60 * 1000;
-  const sessions = new Map();
+  const signingSecret = String(secret || "wiregene-session");
 
   return {
     createSession(session) {
-      pruneExpiredSessions(sessions, ttlMs);
-
-      const sessionId = crypto.randomBytes(24).toString("hex");
       const storedSession = {
-        sessionId,
         username: session.username,
         displayName: session.displayName,
         loggedInAt: session.loggedInAt ?? new Date().toISOString(),
         expiresAt: new Date(Date.now() + ttlMs).toISOString(),
+        nonce: crypto.randomBytes(12).toString("hex"),
       };
 
-      sessions.set(sessionId, storedSession);
-      return storedSession;
+      return {
+        ...storedSession,
+        sessionId: signSession(storedSession, signingSecret),
+      };
     },
 
     getSession(request) {
-      pruneExpiredSessions(sessions, ttlMs);
       const sessionId = parseSessionIdFromRequest(request);
       if (!sessionId) {
         return null;
       }
 
-      const session = sessions.get(sessionId);
+      const session = verifySession(sessionId, signingSecret);
       if (!session) {
         return null;
       }
 
       if (Date.parse(session.expiresAt) <= Date.now()) {
-        sessions.delete(sessionId);
         return null;
       }
 
-      const refreshed = {
+      return {
         ...session,
-        expiresAt: new Date(Date.now() + ttlMs).toISOString(),
+        sessionId,
       };
-      sessions.set(sessionId, refreshed);
-      return refreshed;
     },
 
     destroySession(request) {
       const sessionId = parseSessionIdFromRequest(request);
-      if (!sessionId) {
-        return false;
-      }
-      return sessions.delete(sessionId);
+      return Boolean(sessionId);
     },
 
     attachSessionCookie(response, session, { secure = false } = {}) {
@@ -88,6 +80,51 @@ export function createSessionStore({ ttlHours = 12 } = {}) {
       response.setHeader("Set-Cookie", parts.join("; "));
     },
   };
+}
+
+function signSession(session, secret) {
+  const payload = base64UrlEncode(JSON.stringify(session));
+  const signature = createSignature(payload, secret);
+  return `${payload}.${signature}`;
+}
+
+function verifySession(sessionId, secret) {
+  const [payload, signature] = String(sessionId).split(".");
+  if (!payload || !signature) {
+    return null;
+  }
+
+  const expected = createSignature(payload, secret);
+  if (!safeEqual(signature, expected)) {
+    return null;
+  }
+
+  try {
+    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!decoded || typeof decoded !== "object") {
+      return null;
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function createSignature(payload, secret) {
+  return crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+}
+
+function safeEqual(left, right) {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+  return (
+    leftBuffer.length === rightBuffer.length &&
+    crypto.timingSafeEqual(leftBuffer, rightBuffer)
+  );
+}
+
+function base64UrlEncode(value) {
+  return Buffer.from(value, "utf8").toString("base64url");
 }
 
 function parseSessionIdFromRequest(request) {
@@ -127,12 +164,3 @@ function parseCookies(cookieHeader) {
     }, {});
 }
 
-function pruneExpiredSessions(sessions, ttlMs) {
-  const now = Date.now();
-  for (const [sessionId, session] of sessions.entries()) {
-    const expiresAt = Date.parse(session.expiresAt ?? 0);
-    if (!Number.isFinite(expiresAt) || expiresAt <= now) {
-      sessions.delete(sessionId);
-    }
-  }
-}

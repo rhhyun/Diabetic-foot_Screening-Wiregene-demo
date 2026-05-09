@@ -6,6 +6,6 @@
   "scripts": {
     "build": "node scripts/prepare-public.mjs",
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check api/[...path].mjs && node --check scripts/prepare-public.mjs && node --check google-drive-rest.mjs && node --check supabase-rest.mjs && node --check app-config.mjs && node --check session-store.mjs && node --check storage.mjs && node --check admin.mjs && node --check clinician.mjs && node --check sensor.mjs && node --check models.mjs && node --check auth.mjs && node --check record-utils.mjs"
+    "check": "node --check server.mjs && node --check vercel-api-handler.mjs && node --check api/[...path].mjs && node --check api/health.mjs && node --check api/records.mjs && node --check api/auth/login.mjs && node --check api/auth/logout.mjs && node --check api/auth/session.mjs && node --check api/database/export.mjs && node --check api/database/import.mjs && node --check api/records/[recordId].mjs && node --check scripts/prepare-public.mjs && node --check google-drive-rest.mjs && node --check supabase-rest.mjs && node --check app-config.mjs && node --check session-store.mjs && node --check storage.mjs && node --check admin.mjs && node --check clinician.mjs && node --check sensor.mjs && node --check models.mjs && node --check auth.mjs && node --check record-utils.mjs"
   }
 }
