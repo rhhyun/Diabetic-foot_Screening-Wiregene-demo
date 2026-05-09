@@ -3,19 +3,19 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadAppConfig, isSupabaseConfigured } from "./app-config.mjs";
+import {
+  loadAppConfig,
+  isGoogleDriveConfigured,
+  isSupabaseConfigured,
+} from "./app-config.mjs";
+import { createGoogleDriveRepository } from "./google-drive-rest.mjs";
 import { createSupabaseRepository } from "./supabase-rest.mjs";
 import { createSessionStore } from "./session-store.mjs";
 
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 export function createAppServer(config = loadAppConfig(ROOT_DIR)) {
-  const repository = isSupabaseConfigured(config)
-    ? createSupabaseRepository(config)
-    : null;
-  const sessionStore = createSessionStore({
-    ttlHours: config.sessionTtlHours,
-  });
+  const runtime = createAppRuntime(config);
 
   return http.createServer(async (request, response) => {
     try {
@@ -30,11 +30,11 @@ export function createAppServer(config = loadAppConfig(ROOT_DIR)) {
       const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
 
       if (url.pathname.startsWith("/api/")) {
-        await handleApiRequest({ request, response, url, repository, config, sessionStore });
+        await handleApiRequest({ request, response, url, ...runtime });
         return;
       }
 
-      await serveStaticFile(response, url.pathname, config.rootDir);
+      await serveStaticFile(response, url.pathname, runtime.config.rootDir);
     } catch (error) {
       sendJson(response, 500, {
         ok: false,
@@ -44,7 +44,38 @@ export function createAppServer(config = loadAppConfig(ROOT_DIR)) {
   });
 }
 
-async function handleApiRequest({ request, response, url, repository, config, sessionStore }) {
+export function createAppRuntime(config = loadAppConfig(ROOT_DIR)) {
+  const repository = createRepository(config);
+  const sessionStore = createSessionStore({
+    ttlHours: config.sessionTtlHours,
+  });
+
+  return {
+    repository,
+    config,
+    sessionStore,
+  };
+}
+
+function createRepository(config) {
+  if (isGoogleDriveConfigured(config)) {
+    return createGoogleDriveRepository(config);
+  }
+
+  if (isSupabaseConfigured(config)) {
+    const repository = createSupabaseRepository(config);
+    repository.storage = {
+      kind: "remote",
+      label: "Supabase central DB",
+      detail: "Node API + Supabase REST",
+    };
+    return repository;
+  }
+
+  return null;
+}
+
+export async function handleApiRequest({ request, response, url, repository, config, sessionStore }) {
   applyCorsHeaders(response, request, config);
 
   if (request.method === "OPTIONS") {
@@ -74,11 +105,7 @@ async function handleApiRequest({ request, response, url, repository, config, se
         detail: "httpOnly cookie based admin session",
       },
       storage: repository
-        ? {
-            kind: "remote",
-            label: "Supabase central DB",
-            detail: "Node API + Supabase REST 연결",
-          }
+        ? repository.storage
         : {
             kind: "local",
             label: "Browser localStorage",
@@ -150,7 +177,7 @@ async function handleApiRequest({ request, response, url, repository, config, se
     sendJson(response, 503, {
       ok: false,
       message:
-        "Supabase 환경변수가 설정되지 않아 중앙 DB API를 사용할 수 없습니다. .env를 구성한 뒤 서버를 다시 시작해 주세요.",
+        "Remote DB environment variables are not configured. Configure Google Drive or Supabase settings and redeploy.",
     });
     return;
   }
@@ -418,8 +445,13 @@ if (isMainModule(import.meta.url)) {
   const config = loadAppConfig(ROOT_DIR);
   const server = createAppServer(config);
   server.listen(config.port, config.host, () => {
+    const storageLabel = isGoogleDriveConfigured(config)
+      ? "Google Drive JSON DB"
+      : isSupabaseConfigured(config)
+        ? "Supabase central DB"
+        : "local fallback";
     console.log(
-      `[wiregene] http://${config.host}:${config.port} (${isSupabaseConfigured(config) ? "Supabase central DB" : "local fallback"})`,
+      `[wiregene] http://${config.host}:${config.port} (${storageLabel})`,
     );
   });
 }

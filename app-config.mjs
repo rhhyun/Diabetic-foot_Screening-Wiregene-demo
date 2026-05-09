@@ -10,18 +10,39 @@ export function loadAppConfig(rootDir) {
     rootDir,
     supabaseUrl: process.env.SUPABASE_URL || "",
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    googleDriveClientId: process.env.GOOGLE_DRIVE_CLIENT_ID || "",
+    googleDriveClientSecret: process.env.GOOGLE_DRIVE_CLIENT_SECRET || "",
+    googleDriveRefreshToken: process.env.GOOGLE_DRIVE_REFRESH_TOKEN || "",
+    googleDriveFolderId:
+      process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_URL || "",
+    googleDriveFolderName:
+      process.env.GOOGLE_DRIVE_FOLDER_NAME || "wiregene-diabetic-foot-demo",
+    googleDriveDatabaseFileId:
+      process.env.GOOGLE_DRIVE_DATABASE_FILE_ID || process.env.GOOGLE_DRIVE_FILE_ID || "",
+    googleDriveDatabaseFilename:
+      process.env.GOOGLE_DRIVE_DATABASE_FILENAME ||
+      "wiregene-diabetic-foot-demo-database.json",
     adminUsername: process.env.ADMIN_USERNAME || "wiregene-admin",
     adminPassword: process.env.ADMIN_PASSWORD || "WG-demo-2026",
     adminDisplayName: process.env.ADMIN_DISPLAY_NAME || "Wiregene Demo Admin",
     sessionTtlHours: Number.parseInt(process.env.SESSION_TTL_HOURS || "12", 10),
     corsAllowedOrigins: parseOrigins(
-      process.env.CORS_ALLOWED_ORIGINS || "https://rhhyun.github.io",
+      process.env.CORS_ALLOWED_ORIGINS ||
+        "https://rhhyun.github.io,https://dmfoot.wiregene.com",
     ),
   };
 }
 
 export function isSupabaseConfigured(config) {
   return Boolean(config.supabaseUrl && config.supabaseServiceRoleKey);
+}
+
+export function isGoogleDriveConfigured(config) {
+  return Boolean(
+    config.googleDriveClientId &&
+      config.googleDriveClientSecret &&
+      config.googleDriveRefreshToken,
+  );
 }
 
 function loadEnvFile(filepath) {
