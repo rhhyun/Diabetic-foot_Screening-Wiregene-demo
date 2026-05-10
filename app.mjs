@@ -385,7 +385,7 @@ function renderStartStep() {
         <p>발 상태와 생활 습관에 대해 차례대로 답하면 됩니다.</p>
         <div class="button-row">
           <button class="primary-button" data-action="start-questionnaire">문진 시작하기</button>
-          <button class="secondary-button inverse" data-action="toggle-intro">연구 설명 보기</button>
+          <button class="secondary-button inverse" data-action="toggle-intro">${state.showIntroDetails ? "연구 설명 닫기" : "연구 설명 보기"}</button>
         </div>
       </article>
       <article class="start-card">
@@ -405,8 +405,42 @@ function renderStartStep() {
       </article>
       ${
         state.showIntroDetails
-          ? `<article class="detail-card">
-              <p>응답해 주신 내용은 당뇨발 위험을 더 이르게 살피고, 더 나은 예방 도구를 개발하기 위한 연구에 활용됩니다.</p>
+          ? `<article class="detail-card study-detail-card">
+              <p class="eyebrow tint">Study Guide</p>
+              <h3>이 연구와 앱에 대해 안내드립니다</h3>
+              <p>이 연구는 당뇨병 환자의 발 건강 변화를 더 일찍 확인하고, 향후 더 정확한 위험예측과 예방 관리에 도움이 되는 도구를 개발하기 위해 진행됩니다.</p>
+              <div class="summary-grid three top-gap">
+                <div class="mini-card">
+                  <strong>무엇을 하나요?</strong>
+                  <p>발 상태, 생활 습관, 과거 병력 등에 대한 문진을 통해 발 건강과 관련된 정보를 수집합니다.</p>
+                </div>
+                <div class="mini-card">
+                  <strong>어떻게 참여하나요?</strong>
+                  <p>태블릿에서 질문을 읽고 해당하는 답을 선택하면 됩니다. 보통 3~5분 정도 걸립니다.</p>
+                </div>
+                <div class="mini-card">
+                  <strong>무엇에 활용되나요?</strong>
+                  <p>수집된 정보는 당뇨발 조기 위험평가와 최신 인공지능 기반 예측모델 개발에 활용될 수 있습니다.</p>
+                </div>
+              </div>
+              <div class="summary-grid top-gap">
+                <div class="mini-card">
+                  <strong>어떤 정보가 포함되나요?</strong>
+                  <p>기본정보, 당뇨 관련 정보, 발 증상, 과거 병력, 생활 습관, 추가 연구 참여 의향 등이 포함될 수 있습니다.</p>
+                </div>
+                <div class="mini-card">
+                  <strong>개인정보는 어떻게 다루나요?</strong>
+                  <p>연구에 필요한 범위 안에서 정보를 사용하며, 관련 기준과 절차에 따라 보호합니다. 실제 운영 환경에서는 권한 관리와 보안 기준에 따라 관리됩니다.</p>
+                </div>
+              </div>
+              <div class="info-panel warning top-gap">
+                <strong>중요 안내</strong>
+                <p>이 앱은 연구용 문진 도구이며, 현재의 진단이나 치료를 대신하지 않습니다. 발에 상처, 붉어짐, 심한 통증, 붓기 같은 증상이 있으면 반드시 의료진과 상담해 주세요.</p>
+              </div>
+              <div class="info-panel neutral top-gap">
+                <strong>참여 전 참고해 주세요</strong>
+                <p>문진 참여는 자율적이며, 응답 도중 언제든 중단할 수 있습니다. 답변은 가능한 범위에서 편하게 작성하시면 됩니다.</p>
+              </div>
             </article>`
           : ""
       }

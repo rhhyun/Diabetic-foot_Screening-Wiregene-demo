@@ -415,6 +415,20 @@ a {
   line-height: 1.56;
 }
 
+.study-detail-card h3 {
+  margin: 8px 0 0;
+  font-size: clamp(1.08rem, 1.7vw, 1.34rem);
+  line-height: 1.26;
+  letter-spacing: -0.02em;
+}
+
+.study-detail-card > p {
+  margin: 10px 0 0;
+  font-size: 0.94rem;
+  line-height: 1.58;
+  color: rgba(23, 49, 59, 0.78);
+}
+
 .mini-card {
   padding: 15px;
 }
