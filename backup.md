@@ -100,3 +100,29 @@ For a real central DB run, configure:
 3. If this is moving toward real clinical use, replace the demo single-admin password flow with proper user and role management.
 4. Separate clinical/patient data storage policy before entering real patient information.
 5. Add an operational version label visible in the UI before the next functional deployment.
+
+## 2026-07-07 patent application guideline note
+
+### Work completed
+
+- Added `patent_application_guideline.txt` for patent attorney review.
+- The document is a concise Korean technical disclosure guide, not a legal opinion.
+- It summarizes the invention candidate as a multi-input diabetic-foot risk screening and management workflow.
+- It highlights patient questionnaire, clinician measurements, sensor/time-series features, rule-fusion signals, endpoint-specific risk scoring, data completeness, and recommended action output.
+- It asks the patent attorney to review novelty, inventive step, publication/public-disclosure impact, software claim type, medical workflow boundaries, and filing strategy.
+
+### Version
+
+- Updated package version from `0.2.0` to `0.2.1` for this documentation handoff.
+
+### References checked
+
+- KIPO/MOIP computer-related invention guidance.
+- KIPO/MOIP PCT invention-description structure guidance.
+- KIPO/MOIP patent application examination manual section on specification contents.
+
+### Google Drive handoff status
+
+- Attempted to upload `patent_application_guideline.txt` to Google Drive as a raw `text/plain` file.
+- Upload was blocked by Google Drive API permissions: `403 Forbidden`, `ACCESS_TOKEN_SCOPE_INSUFFICIENT`, `DriveFiles.Create`.
+- Do not retry the same connector upload until Google Drive write/create scope is re-authorized.
