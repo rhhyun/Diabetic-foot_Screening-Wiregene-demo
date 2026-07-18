@@ -1,0 +1,131 @@
+name: Publish Synology Container
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  IMAGE_NAME: ghcr.io/rhhyun/diabetic-foot-screening-wiregene-demo
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-synology-container-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Validate application and deployment contract
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run check
+          npm run check:deploy
+          npm run test:readiness
+          npm run build
+          bash -n deploy/synology/deploy.sh
+          bash -n deploy/synology/common-deploy.sh
+
+          cp deploy/synology/site.env.example .ci-site.env
+          sed -i "s|^APP_DIR=.*|APP_DIR=$GITHUB_WORKSPACE|" .ci-site.env
+          sed -i "s|^APP_IMAGE=.*|APP_IMAGE=${IMAGE_NAME}:sha-${GITHUB_SHA}|" .ci-site.env
+          sed -i "s|^APP_ENV_FILE=.*|APP_ENV_FILE=$GITHUB_WORKSPACE/.ci-app.env|" .ci-site.env
+          printf '%s\n' \
+            'ADMIN_USERNAME=ci-admin' \
+            'ADMIN_PASSWORD=ci-only-password' \
+            'SESSION_SECRET=ci-only-long-session-secret' \
+            'SUPABASE_URL=https://example.supabase.co' \
+            'SUPABASE_SERVICE_ROLE_KEY=ci-only-service-role-key' \
+            > .ci-app.env
+          docker compose --env-file .ci-site.env -p wiregene-diabetic-foot -f docker-compose.synology.yml config --quiet
+
+      - name: Read application version
+        id: version
+        run: echo "value=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish linux/amd64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.value }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:main
+            ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.value }}
+            ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.value }}
+
+      - name: Verify image runtime and graceful stop
+        env:
+          TEST_IMAGE: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker run --detach --name wiregene-diabetic-foot-ci \
+            --publish 127.0.0.1:3901:3000 \
+            "$TEST_IMAGE"
+          trap 'docker rm --force wiregene-diabetic-foot-ci >/dev/null 2>&1 || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3901/api/health > health.json; then
+              break
+            fi
+            sleep 2
+          done
+
+          grep -q '"ok":true' health.json
+          grep -q '"version":"${{ steps.version.outputs.value }}"' health.json
+          for attempt in $(seq 1 30); do
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' wiregene-diabetic-foot-ci)" = healthy ]; then
+              break
+            fi
+            sleep 2
+          done
+          test "$(docker inspect --format '{{.State.Health.Status}}' wiregene-diabetic-foot-ci)" = healthy
+          stop_started_at=$(date +%s)
+          docker stop --time 10 wiregene-diabetic-foot-ci
+          stop_elapsed=$(( $(date +%s) - stop_started_at ))
+          test "$stop_elapsed" -lt 10
+          test "$(docker inspect --format '{{.State.ExitCode}}' wiregene-diabetic-foot-ci)" = 0
+          docker rm wiregene-diabetic-foot-ci
+          trap - EXIT
+
+      - name: Publish verified image tags
+        if: github.event_name != 'pull_request'
+        run: docker push --all-tags "$IMAGE_NAME"

@@ -87,12 +87,17 @@ When the first deployment finishes, open:
 - `https://<service-name>.onrender.com/clinician.html`
 - `https://<service-name>.onrender.com/sensor.html`
 - `https://<service-name>.onrender.com/api/health`
+- `https://<service-name>.onrender.com/api/ready`
 
 Expected health response:
 
 - `"ok": true`
 - `"storage.kind": "remote"` when Supabase is connected
 - `"authenticated": false` on first load until admin login
+
+`/api/health` is a process liveness response. `/api/ready` returns HTTP 200 only
+after a bounded Supabase single-row or Google Drive metadata probe succeeds. The
+readiness probe does not return or download the full record database.
 
 ## 6. What to give evaluators
 
@@ -144,3 +149,13 @@ If the page opens but record list is empty:
 
 - confirm the SQL in [supabase-schema.sql](/C:/dev/Diabetic-foot_Screening-Wiregene-demo/supabase-schema.sql) ran successfully
 - confirm `api/health` reports `"storage.kind": "remote"`
+
+## 10. Synology NAS production path
+
+Synology deployment is now an image-only path. GitHub Actions builds the
+`linux/amd64` image and publishes it to GHCR; the NAS must not run `npm install`,
+`npm run build`, or `docker compose build`.
+
+Use [DEPLOYMENT.md](DEPLOYMENT.md) as the authoritative guide. In particular,
+DSM Task Scheduler must run only the finite `deploy/synology/deploy.sh` entrypoint
+and must never run `node server.mjs` or `npm run start` directly.

@@ -13,6 +13,7 @@ import { createSupabaseRepository } from "./supabase-rest.mjs";
 import { createSessionStore } from "./session-store.mjs";
 
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const APP_VERSION = process.env.APP_VERSION || "0.2.2";
 
 export function createAppServer(config = loadAppConfig(ROOT_DIR)) {
   const runtime = createAppRuntime(config);
@@ -55,6 +56,12 @@ export function createAppRuntime(config = loadAppConfig(ROOT_DIR)) {
     repository,
     config,
     sessionStore,
+    readinessState: {
+      lastSuccessAt: 0,
+      lastFailureAt: 0,
+      lastError: null,
+      pending: null,
+    },
   };
 }
 
@@ -76,7 +83,15 @@ function createRepository(config) {
   return null;
 }
 
-export async function handleApiRequest({ request, response, url, repository, config, sessionStore }) {
+export async function handleApiRequest({
+  request,
+  response,
+  url,
+  repository,
+  config,
+  sessionStore,
+  readinessState,
+}) {
   applyCorsHeaders(response, request, config);
 
   if (request.method === "OPTIONS") {
@@ -100,6 +115,7 @@ export async function handleApiRequest({ request, response, url, repository, con
   if (url.pathname === "/api/health" && request.method === "GET") {
     sendJson(response, 200, {
       ok: true,
+      version: APP_VERSION,
       auth: {
         kind: "server-session",
         label: "Node in-memory session",
@@ -117,6 +133,34 @@ export async function handleApiRequest({ request, response, url, repository, con
         port: config.port,
       },
     });
+    return;
+  }
+
+  if (url.pathname === "/api/ready" && request.method === "GET") {
+    if (!repository) {
+      sendJson(response, 503, {
+        ok: false,
+        version: APP_VERSION,
+        message: "Remote storage is not configured.",
+      });
+      return;
+    }
+
+    try {
+      await checkRepositoryReadiness(repository, readinessState);
+      sendJson(response, 200, {
+        ok: true,
+        version: APP_VERSION,
+        storage: repository.storage,
+      });
+    } catch {
+      sendJson(response, 503, {
+        ok: false,
+        version: APP_VERSION,
+        storage: repository.storage,
+        message: "Remote storage readiness check failed.",
+      });
+    }
     return;
   }
 
@@ -289,6 +333,40 @@ export async function handleApiRequest({ request, response, url, repository, con
   });
 }
 
+async function checkRepositoryReadiness(repository, readinessState) {
+  const now = Date.now();
+  if (now - readinessState.lastSuccessAt < 30_000) {
+    return;
+  }
+
+  if (readinessState.lastError && now - readinessState.lastFailureAt < 5_000) {
+    throw readinessState.lastError;
+  }
+
+  if (!readinessState.pending) {
+    const probe = repository
+      .checkReady()
+      .then(() => {
+        readinessState.lastSuccessAt = Date.now();
+        readinessState.lastFailureAt = 0;
+        readinessState.lastError = null;
+      })
+      .catch((error) => {
+        readinessState.lastFailureAt = Date.now();
+        readinessState.lastError = error;
+        throw error;
+      })
+      .finally(() => {
+        if (readinessState.pending === probe) {
+          readinessState.pending = null;
+        }
+      });
+    readinessState.pending = probe;
+  }
+
+  await readinessState.pending;
+}
+
 async function serveStaticFile(response, pathname, rootDir) {
   const relativePath = pathname === "/" ? "/index.html" : pathname;
   const normalizedPath = path.normalize(relativePath).replace(/^(\.\.[/\\])+/, "");
@@ -445,6 +523,31 @@ function contentTypeFor(filepath) {
 if (isMainModule(import.meta.url)) {
   const config = loadAppConfig(ROOT_DIR);
   const server = createAppServer(config);
+  let shutdownStarted = false;
+
+  const shutdown = (signal) => {
+    if (shutdownStarted) {
+      process.exit(1);
+    }
+
+    shutdownStarted = true;
+    console.log(`[wiregene] received ${signal}; closing HTTP server`);
+
+    const forceExitTimer = setTimeout(() => {
+      server.closeAllConnections?.();
+      process.exit(1);
+    }, 10_000);
+    forceExitTimer.unref();
+
+    server.close((error) => {
+      clearTimeout(forceExitTimer);
+      process.exit(error ? 1 : 0);
+    });
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
+
   server.listen(config.port, config.host, () => {
     const storageLabel = isGoogleDriveConfigured(config)
       ? "Google Drive JSON DB"

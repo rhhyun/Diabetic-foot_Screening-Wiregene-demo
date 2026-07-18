@@ -18,6 +18,10 @@ export function createGoogleDriveRepository(config) {
       detail: "Node API + Google Drive JSON database",
     },
 
+    async checkReady() {
+      return client.checkReady();
+    },
+
     async listRecords() {
       return client.readRecords();
     },
@@ -121,6 +125,20 @@ function createGoogleDriveClient(config) {
   let folderId = extractGoogleDriveFileId(config.googleDriveFolderId);
 
   return {
+    async checkReady() {
+      const signal = AbortSignal.timeout(8_000);
+      const fileId = databaseFileId || (await findExistingDatabaseFileId(signal));
+      if (!fileId) {
+        throw new Error("Google Drive database file is not ready.");
+      }
+      databaseFileId = fileId;
+      await driveJson(
+        `${DRIVE_API_BASE}/drive/v3/files/${encodeURIComponent(fileId)}?fields=id&supportsAllDrives=true`,
+        { signal },
+      );
+      return true;
+    },
+
     async readRecords() {
       const database = await readDatabase();
       return sortRecords(normalizeImportedRecords(database));
@@ -196,6 +214,46 @@ function createGoogleDriveClient(config) {
 
     databaseFileId = await createDatabaseFile(parentId);
     return databaseFileId;
+  }
+
+  async function findExistingDatabaseFileId(signal) {
+    let readinessFolderId = folderId;
+    if (!readinessFolderId && config.googleDriveFolderName) {
+      const folderSearchUrl = new URL(`${DRIVE_API_BASE}/drive/v3/files`);
+      folderSearchUrl.searchParams.set(
+        "q",
+        [
+          `name = '${escapeDriveQuery(config.googleDriveFolderName)}'`,
+          "mimeType = 'application/vnd.google-apps.folder'",
+          "trashed = false",
+        ].join(" and "),
+      );
+      folderSearchUrl.searchParams.set("fields", "files(id)");
+      folderSearchUrl.searchParams.set("pageSize", "1");
+      folderSearchUrl.searchParams.set("supportsAllDrives", "true");
+      folderSearchUrl.searchParams.set("includeItemsFromAllDrives", "true");
+      const folderSearchResult = await driveJson(folderSearchUrl, { signal });
+      readinessFolderId = folderSearchResult.files?.[0]?.id ?? "";
+      if (!readinessFolderId) {
+        return "";
+      }
+    }
+
+    const fileQuery = [
+      `name = '${escapeDriveQuery(config.googleDriveDatabaseFilename)}'`,
+      "trashed = false",
+      readinessFolderId ? `'${escapeDriveQuery(readinessFolderId)}' in parents` : "",
+    ]
+      .filter(Boolean)
+      .join(" and ");
+    const fileSearchUrl = new URL(`${DRIVE_API_BASE}/drive/v3/files`);
+    fileSearchUrl.searchParams.set("q", fileQuery);
+    fileSearchUrl.searchParams.set("fields", "files(id)");
+    fileSearchUrl.searchParams.set("pageSize", "1");
+    fileSearchUrl.searchParams.set("supportsAllDrives", "true");
+    fileSearchUrl.searchParams.set("includeItemsFromAllDrives", "true");
+    const fileSearchResult = await driveJson(fileSearchUrl, { signal });
+    return fileSearchResult.files?.[0]?.id ?? "";
   }
 
   async function resolveFolderId() {
@@ -287,7 +345,7 @@ function createGoogleDriveClient(config) {
   }
 
   async function driveFetch(url, options = {}) {
-    const token = await getAccessToken();
+    const token = await getAccessToken(options.signal);
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -304,7 +362,7 @@ function createGoogleDriveClient(config) {
     return response;
   }
 
-  async function getAccessToken() {
+  async function getAccessToken(signal) {
     if (accessToken && Date.now() < accessTokenExpiresAt - 60_000) {
       return accessToken;
     }
@@ -318,6 +376,7 @@ function createGoogleDriveClient(config) {
 
     const response = await fetch(TOKEN_URL, {
       method: "POST",
+      signal,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },

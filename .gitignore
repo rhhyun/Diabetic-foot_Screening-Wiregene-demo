@@ -4,3 +4,5 @@ Thumbs.db
 .env.local
 .vercel
 public
+.deploy
+deploy/synology/site.env
