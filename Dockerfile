@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-ARG APP_VERSION=0.2.2
+ARG APP_VERSION=0.2.3
 
 LABEL org.opencontainers.image.source="https://github.com/rhhyun/Diabetic-foot_Screening-Wiregene-demo" \
       org.opencontainers.image.description="Wiregene diabetic-foot screening demo" \

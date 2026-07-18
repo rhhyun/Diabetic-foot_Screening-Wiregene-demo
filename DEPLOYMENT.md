@@ -1,6 +1,6 @@
 # Synology NAS Deployment Standard
 
-Version: `0.2.2`
+Version: `0.2.3`
 
 Target NAS: Synology DS918+ (`linux/amd64`)
 
@@ -94,7 +94,7 @@ sources and deployment contract, creates the static build outside the NAS, then
 builds and publishes these GHCR tags:
 
 - `ghcr.io/rhhyun/diabetic-foot-screening-wiregene-demo:main`
-- `ghcr.io/rhhyun/diabetic-foot-screening-wiregene-demo:0.2.2`
+- `ghcr.io/rhhyun/diabetic-foot-screening-wiregene-demo:0.2.3`
 - `ghcr.io/rhhyun/diabetic-foot-screening-wiregene-demo:sha-<full-commit>`
 
 For the strongest production reproducibility, put an immutable `sha-...` tag in
@@ -126,6 +126,83 @@ the configured Supabase or Google Drive backend. A container replacement logs
 out in-memory admin sessions but does not delete remote records.
 
 ## DSM Task Scheduler
+
+### Emergency: Task Scheduler cannot save
+
+Do not run another Wiregene task, deploy, reboot, reset the NAS, restart Docker,
+or edit Synology's scheduler database while the responsible task and PID are
+unknown. A running foreground process and a DSM scheduler defect can produce
+similar UI symptoms, but they require different recovery actions.
+
+Use a DSM host SSH session through the NAS LAN address when possible. File
+Station can upload this script, but a Container Manager container terminal
+cannot inspect or repair the host DSM scheduler. Sign in as a DSM administrator,
+then elevate without putting a password in a command or log:
+
+```sh
+sudo -i
+/bin/sh /volume1/docker/diabetic-foot-screening/repo/deploy/synology/emergency-diagnose.sh
+```
+
+The diagnostic is read-only, has a 60-second soft outer limit plus a five-second
+kill grace, writes nothing, and prints only to the SSH terminal. It refuses to
+run if the NAS lacks a kill-capable `timeout -k`. It checks DSM version, disk and inode capacity,
+`synoschedtask --run` wrappers, their PID/PPID/cmdline, attached Compose or log
+followers, Wiregene locks, definitions for only the currently running task IDs,
+relevant scheduler-log match counts, and Docker container state. Raw process
+arguments are classified rather than printed, task `Command` values are
+omitted with all multiline continuations while only safe metadata fields are
+shown, and log contents are reduced to counts.
+Treat the remaining output as sensitive. Share only the version fields, suspect
+process types/PIDs, task summary, Docker table, and match counts.
+
+Do not use `killall`, broad `pkill`, scheduler/cron/Docker restarts, or direct
+SQLite edits. An attached `docker compose up` can stop containers when it
+receives TERM, and a direct `node` or `npm start` process can be the production
+server itself. Only a confirmed leaf `docker logs -f` or `tail -f` PID may be
+terminated before further review. For every other process, record the exact
+Task ID, PID, PPID, and redacted command first.
+
+If `/etc.defaults/VERSION` reports `productversion="7.2.1"`,
+`buildnumber="69057"`, and `smallfixnumber="2"`, compare it with Synology's
+release notes. Synology documents that 7.2.1-69057 Update 3 fixed an Update 2
+defect that prevented Task Scheduler from creating or editing tasks. Plan any
+DSM update or reboot as a separate maintenance action because it restarts the
+NAS. If `synoscheduler.log` reports
+`database is locked` or `database disk image is malformed`, preserve the logs
+and open a Synology Support case instead of modifying the database.
+
+This new diagnostic file must first exist in the NAS checkout; use File Station
+to upload it if repository synchronization is unavailable. If it is not present,
+run the built-in read-only commands in the incident handoff below instead of
+creating another DSM task.
+
+Built-in fallback, run from host SSH after `sudo -i`:
+
+```sh
+grep -E '^(productversion|buildnumber|smallfixnumber)=' /etc.defaults/VERSION
+ps -ef | grep -E '[s]ynoschedtask.*--run|[d]ocker compose|[d]ocker-compose|[d]ocker logs -f|[t]ail -f|[n]ode .*server\.mjs|[n]pm (start|run (start|dev|build))|[n]ext (start|dev)'
+TIMEOUT_BIN=; for x in /usr/bin/timeout /bin/timeout /usr/local/bin/timeout; do [ -x "$x" ] && "$x" -k 1 1 /bin/true >/dev/null 2>&1 && TIMEOUT_BIN=$x && break; done
+DOCKER_BIN=; for x in /usr/local/bin/docker /usr/bin/docker /var/packages/ContainerManager/target/usr/bin/docker /var/packages/Docker/target/usr/bin/docker; do [ -x "$x" ] && DOCKER_BIN=$x && break; done
+[ -z "$TIMEOUT_BIN" ] || [ -z "$DOCKER_BIN" ] || "$TIMEOUT_BIN" -k 2 15 "$DOCKER_BIN" ps --no-trunc --format 'table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}\t{{.Ports}}'
+tail -n 500 /var/log/synocrond-execute.log /var/log/synoscheduler.log 2>/dev/null | awk '{ line=tolower($0); if (index(line,"already running") || index(line,"skipped because")) skipped++; if (index(line,"database is locked")) locked++; if (index(line,"database disk image is malformed")) malformed++; if (index(line,"conflict with task")) conflict++ } END { printf "already-running-or-skipped=%d database-locked=%d database-malformed=%d scheduler-conflict=%d\n", skipped, locked, malformed, conflict }'
+```
+
+After the process-list command identifies an exact `synoschedtask --run id=N`,
+inspect only that definition with a bounded query and redact its `Command` value
+before sharing it:
+
+```sh
+"$TIMEOUT_BIN" -k 2 15 /usr/syno/bin/synoschedtask --get id=N
+```
+
+If `TIMEOUT_BIN` is empty, skip both Docker and scheduler queries rather than
+running either one without a hard limit, and report that compatibility result.
+
+The finite repository deploy command does not depend on Task Scheduler and may
+later be invoked directly from a host SSH session. Do not do so until the
+incident is resolved, the old tasks are disabled, and the GHCR image is
+published from `main`.
 
 Use a `User-defined script` task running as `root`. Set it to manual execution
 only. Container Manager's `unless-stopped` policy handles NAS reboots; do not run
@@ -198,7 +275,7 @@ After the DSM reverse proxy points to the verified port, also check:
 curl --fail --silent --show-error --max-time 15 https://dmfoot.wiregene.com/api/ready
 ```
 
-Expected JSON includes `"ok":true`, `"version":"0.2.2"`, and a remote storage
+Expected JSON includes `"ok":true`, `"version":"0.2.3"`, and a remote storage
 description. Docker checks `/api/health` as a process liveness probe; deployment
 success uses `/api/ready`, which performs a bounded remote repository metadata or
 single-row probe. The probe has an eight-second upstream timeout, deduplicates

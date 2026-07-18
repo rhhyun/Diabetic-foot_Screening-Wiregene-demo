@@ -13,7 +13,7 @@ import { createSupabaseRepository } from "./supabase-rest.mjs";
 import { createSessionStore } from "./session-store.mjs";
 
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const APP_VERSION = process.env.APP_VERSION || "0.2.2";
+const APP_VERSION = process.env.APP_VERSION || "0.2.3";
 
 export function createAppServer(config = loadAppConfig(ROOT_DIR)) {
   const runtime = createAppRuntime(config);

@@ -11,6 +11,7 @@ const files = Object.fromEntries(
       "docker-compose.synology.yml",
       "deploy/synology/common-deploy.sh",
       "deploy/synology/deploy.sh",
+      "deploy/synology/emergency-diagnose.sh",
       "deploy/synology/site.env.example",
       ".github/workflows/publish-container.yml",
       "google-drive-rest.mjs",
@@ -59,6 +60,13 @@ assertIncludes("deploy/synology/common-deploy.sh", "verify_no_deploy_processes")
 assertIncludes("deploy/synology/common-deploy.sh", 'die "setsid executable is required');
 assertIncludes("deploy/synology/deploy.sh", 'exec "$TIMEOUT_BIN" -k 30 1200');
 assertIncludes("deploy/synology/deploy.sh", "WIREGENE_DEPLOY_WRAPPED=1");
+assertIncludes("deploy/synology/emergency-diagnose.sh", 'exec "$EMERGENCY_TIMEOUT_BIN" -k 5 60');
+assertIncludes("deploy/synology/emergency-diagnose.sh", "/usr/syno/bin/synoschedtask --get id=\"$running_task_id\"");
+assertIncludes("deploy/synology/emergency-diagnose.sh", "READ-ONLY stdout collection");
+assertIncludes("deploy/synology/emergency-diagnose.sh", "database disk image is malformed");
+assertIncludes("deploy/synology/emergency-diagnose.sh", "Command and continuation: [REDACTED - inspect locally]");
+assertIncludes("deploy/synology/emergency-diagnose.sh", "Last Run Time|Next Trigger|Status");
+assertIncludes("deploy/synology/emergency-diagnose.sh", 'task_query_count" -gt 3');
 
 for (const relativePath of [
   "deploy/synology/common-deploy.sh",
@@ -74,6 +82,19 @@ for (const relativePath of [
   assertExcludes(relativePath, /tail\s+-f/i);
   assertExcludes(relativePath, /npm\s+(?:install|run\s+(?:build|start|dev))/i);
 }
+
+assertExcludes("deploy/synology/emergency-diagnose.sh", /\bkill\s+-/i);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /compose\s+down(?:\s|$)/i);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /docker\s+(?:system|volume)\s+prune/i);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /synoschedtask\s+--(?:del|reset-status|run|sync)/i);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /systemctl\s+(?:stop|restart)/i);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /\b(?:mkdir|chmod|chown|rm|mv|dd)\b/);
+assertExcludes("deploy/synology/emergency-diagnose.sh", />\s*(?!&|\/dev\/null)/);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /^\s*(?:kill|killall|pkill|reboot|shutdown|poweroff|halt)\b/m);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /(?:docker|DOCKER_BIN)[^\n]*(?:\bstop\b|\brestart\b|\bkill\b|\brm\b)/i);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /^\s*(?:synoservice|synosystemctl|systemctl|service)\b/m);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /^\s*(?:touch|cp|install|tee|truncate)\b/m);
+assertExcludes("deploy/synology/emergency-diagnose.sh", /synoschedtask[^\n]*--get\s+state=enabled/i);
 
 assertIncludes(".github/workflows/publish-container.yml", "packages: write");
 assertIncludes(".github/workflows/publish-container.yml", "platforms: linux/amd64");

@@ -44,6 +44,7 @@ jobs:
           npm run build
           bash -n deploy/synology/deploy.sh
           bash -n deploy/synology/common-deploy.sh
+          bash -n deploy/synology/emergency-diagnose.sh
 
           cp deploy/synology/site.env.example .ci-site.env
           sed -i "s|^APP_DIR=.*|APP_DIR=$GITHUB_WORKSPACE|" .ci-site.env

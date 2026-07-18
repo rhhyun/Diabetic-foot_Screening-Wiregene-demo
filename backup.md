@@ -127,7 +127,7 @@ For a real central DB run, configure:
 - Upload was blocked by Google Drive API permissions: `403 Forbidden`, `ACCESS_TOKEN_SCOPE_INSUFFICIENT`, `DriveFiles.Create`.
 - Do not retry the same connector upload until Google Drive write/create scope is re-authorized.
 
-## 2026-07-18 Synology finite-deployment standard v0.2.2
+## 2026-07-18 Synology finite-deployment standard v0.2.3
 
 ### Audit outcome
 
@@ -146,7 +146,7 @@ For a real central DB run, configure:
 
 ### Implemented deployment boundary
 
-- Version: `0.2.2`
+- Version: `0.2.3`
 - Working branch: `agent/synology-deploy-safety`
 - Draft pull request: `https://github.com/rhhyun/Diabetic-foot_Screening-Wiregene-demo/pull/1`
 - GitHub Actions `Publish Synology Container` and all Vercel pull-request checks
@@ -163,16 +163,42 @@ For a real central DB run, configure:
   `10m` x 3.
 - `deploy/synology/common-deploy.sh`: reusable lock/trap/deadline/PATH/log/rollback/
   health engine shared across Wiregene sites.
+- `deploy/synology/emergency-diagnose.sh`: scheduler-independent, read-only
+  stdout-only incident collector with a 60-second soft limit and five-second kill
+  grace for Task ID/PID/type, disk/inode, scheduler-log match counts, lock, and
+  Docker-state triage. It writes no file, does not print raw process arguments,
+  redacts task Command values, and queries at most three discovered running IDs.
 - `deploy/synology/site.env.example`: the only site-specific values are app name,
   NAS path, image, port, health URL, environment file, and required environment names.
 - `.github/workflows/publish-container.yml`: GitHub Actions validates, builds, and
-  publishes `main`, `0.2.2`, and immutable commit-SHA GHCR tags. The NAS only pulls
+  publishes `main`, `0.2.3`, and immutable commit-SHA GHCR tags. The NAS only pulls
   and starts the image detached.
 - `scripts/validate-synology-deploy.mjs`: rejects NAS builds, attached server/log
   commands, dangerous cleanup commands, missing log rotation, or expansion of the
   site-variable boundary.
 - `DEPLOYMENT.md`: authoritative before/after comparison, migration, scheduler,
   rollback, verification, and forbidden-operation guide.
+
+### 2026-07-18 live DSM scheduler incident
+
+- The user reported that DSM Task Scheduler could no longer save new commands
+  after repeated Wiregene task executions. No new repository deploy script had
+  been merged, published, synchronized, or run on the NAS, so version 0.2.2 was
+  not the cause of the already-running state.
+- The attached GitHub email referred to old commit `bcaf85c`. Its version-output
+  quoting failure was fixed by `d548daa`; current PR head `73ff494` and its
+  `linux/amd64` container checks were successful before this incident update.
+- `wiregene.com:22` was reachable and identified as `OpenSSH_5.3`, but this
+  workstation's non-interactive key authentication was rejected. No NAS command,
+  process termination, service restart, scheduler mutation, Docker mutation, or
+  reboot was performed.
+- The immediate safe boundary is read-only host SSH diagnosis. Generic shell,
+  `synoschedtask`, cron, Docker, Compose, or Node termination is forbidden until
+  the exact Task ID, PID, PPID, and redacted command are captured.
+- Synology documents that DSM 7.2.1-69057 Update 2 could prevent Task Scheduler
+  create/edit operations and says it was fixed in Update 3. The NAS version must
+  be captured before deciding whether this is a live process or DSM maintenance
+  issue.
 
 ### Production safety behavior
 
@@ -247,7 +273,7 @@ Verification command:
 - `bash -n deploy/synology/common-deploy.sh`: passed through Git for Windows Bash.
 - Compose and GitHub workflow YAML parsing: passed.
 - `git diff --check`: passed.
-- Local `/api/health`: HTTP 200 with `version=0.2.2`.
+- Local `/api/health`: HTTP 200 with `version=0.2.3`.
 - Local `/api/ready` without remote storage: expected HTTP 503, confirming a
   misconfigured local fallback cannot pass deployment readiness.
 - Docker CLI is unavailable on this workstation. The pull request workflow is
