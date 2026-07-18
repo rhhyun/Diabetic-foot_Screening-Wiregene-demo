@@ -199,6 +199,15 @@ For a real central DB run, configure:
   create/edit operations and says it was fixed in Update 3. The NAS version must
   be captured before deciding whether this is a live process or DSM maintenance
   issue.
+- Incident hardening was committed as `ef071d1` and pushed to the existing draft
+  pull request. GitHub Actions run `29645472363` passed the deployment contract,
+  all three shell syntax checks, `linux/amd64` image build, container health, and
+  graceful exit; all three Vercel PR statuses also passed.
+- Final read-only external checks returned HTTP 200 from the DSM login endpoint
+  at `hyunlab.synology.me:5001` and HTTP 200 from
+  `dmfoot.wiregene.com/api/health`. These checks do not reveal the internal Task
+  ID/PID or prove scheduler health, and the new diagnostic remains unmerged and
+  not synchronized to the NAS.
 
 ### Production safety behavior
 
