@@ -1,0 +1,12 @@
+.git
+.github
+.deploy
+.env
+.env.*
+!.env.example
+.vercel
+node_modules
+public
+npm-debug.log*
+*.md
+patent_application_guideline.txt

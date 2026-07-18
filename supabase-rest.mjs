@@ -9,6 +9,14 @@ export function createSupabaseRepository(config) {
   const restBaseUrl = `${config.supabaseUrl.replace(/\/$/, "")}/rest/v1`;
 
   return {
+    async checkReady() {
+      await supabaseRequest(restBaseUrl, config, {
+        path: "/research_records?select=record_id&limit=1",
+        signal: AbortSignal.timeout(8_000),
+      });
+      return true;
+    },
+
     async listRecords() {
       const rows = await supabaseRequest(restBaseUrl, config, {
         path: "/research_records?select=record_payload&order=updated_at.desc",
@@ -157,9 +165,14 @@ function rowToRecord(row) {
   return normalizeResearchRecord(row?.record_payload);
 }
 
-async function supabaseRequest(restBaseUrl, config, { path, method = "GET", headers = {}, body } = {}) {
+async function supabaseRequest(
+  restBaseUrl,
+  config,
+  { path, method = "GET", headers = {}, body, signal } = {},
+) {
   const response = await fetch(`${restBaseUrl}${path}`, {
     method,
+    signal,
     headers: {
       apikey: config.supabaseServiceRoleKey,
       Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
