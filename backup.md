@@ -148,6 +148,13 @@ For a real central DB run, configure:
 
 - Version: `0.2.2`
 - Working branch: `agent/synology-deploy-safety`
+- Draft pull request: `https://github.com/rhhyun/Diabetic-foot_Screening-Wiregene-demo/pull/1`
+- GitHub Actions `Publish Synology Container` and all Vercel pull-request checks
+  passed on 2026-07-18. The CI run built the `linux/amd64` image, reached Docker
+  healthy state, and confirmed a bounded graceful stop with container exit code 0.
+- The pull request remains intentionally unmerged. GHCR production tags are only
+  published from `main`, so the NAS deploy must wait for review, merge, image
+  publication, repository synchronization, and the site-specific `site.env` setup.
 - `Dockerfile`: non-root Node 22 runtime, `linux/amd64` CI target, built-in healthcheck,
   dependency installation inside external CI image build, and graceful `SIGTERM`
   handling through `server.mjs`.
