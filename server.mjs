@@ -430,6 +430,8 @@ function contentTypeFor(filepath) {
       return "text/javascript; charset=utf-8";
     case ".json":
       return "application/json; charset=utf-8";
+    case ".ico":
+      return "image/vnd.microsoft.icon";
     case ".svg":
       return "image/svg+xml";
     case ".png":

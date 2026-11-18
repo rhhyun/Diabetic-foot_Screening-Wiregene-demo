@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const publicDir = path.join(rootDir, "public");
 const staticFiles = [
   "index.html",
+  "favicon.ico",
   "admin.html",
   "clinician.html",
   "sensor.html",
