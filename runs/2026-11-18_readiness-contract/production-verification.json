@@ -1,0 +1,68 @@
+{
+  "checked_at": "2026-11-18T23:22:40.251873+00:00",
+  "base_url": "https://dmfoot.wiregene.com",
+  "public": {
+    "/": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel"
+    },
+    "/admin.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel"
+    },
+    "/clinician.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel"
+    },
+    "/sensor.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel"
+    },
+    "/api/health": {
+      "http": 200,
+      "content_type": "application/json; charset=utf-8",
+      "server": "Vercel",
+      "ok": true,
+      "storage_kind": "remote",
+      "storage_label": "Google Drive JSON DB"
+    },
+    "/api/ready": {
+      "http": 404,
+      "content_type": "application/json; charset=utf-8",
+      "server": "Vercel",
+      "ok": false
+    }
+  },
+  "production_monitor": {
+    "liveness_path": "/api/health",
+    "expected_http": 200,
+    "expected_ok": true,
+    "expected_storage_kind": "remote",
+    "verifies_storage_connectivity": false
+  },
+  "github_production_deployment": {
+    "id": 5341792375,
+    "sha": "869c77e9b275d497b16e34b2a057ff240c9a2d61",
+    "package_version": "0.2.1",
+    "status": "success"
+  },
+  "synology_candidate": {
+    "pr": 1,
+    "sha": "6f1a90b05ca7662207c0e93e55ec45ce4dde0767",
+    "package_version": "0.2.3",
+    "readiness_path": "/api/ready",
+    "state": "unmerged_draft"
+  },
+  "verification": {
+    "production_branch_node_check": "pass",
+    "production_branch_static_build": "pass",
+    "production_branch_mocked_route_contract": "pass",
+    "synology_candidate_mocked_readiness_tests": "pass",
+    "live_storage_read_write": false,
+    "live_account_login": false
+  }
+}

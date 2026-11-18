@@ -1,5 +1,13 @@
 # Diabetic Foot Screening Wiregene Demo Backup
 
+## 2026-11-18 Vercel 운영 상태 확인 경로
+
+- 공개 모니터의 DMFoot API 확인 경로는 `https://dmfoot.wiregene.com/api/health`입니다. HTTP 200과 JSON `ok: true`를 확인합니다. `storage.kind: remote`는 원격 저장소 설정 여부를 나타냅니다.
+- 18:22 EST에 공개 홈, 관리자·임상의·센서 HTML, `/api/health`가 모두 HTTP 200을 반환했습니다. Vercel은 Google Drive 원격 저장소를 설정한 것으로 보고했습니다. 실제 저장소 연결이나 계정 로그인은 확인 범위 밖입니다.
+- 공개 `/api/ready`의 HTTP 404는 운영 소스의 경로 정의와 일치합니다. 이 경로는 Synology 후보 v0.2.3의 원격 저장소 준비 상태 확인용입니다. 공개 Vercel 프로세스 상태와 Synology 배포 준비 상태에는 각 환경의 경로를 사용합니다.
+- GitHub의 최근 Production 성공 기록은 `869c77e` v0.2.1입니다. Synology 후보는 미병합 초안 PR #1의 `6f1a90b`입니다. 이번 작업은 모니터 대상 경로와 운영 검증 기록을 바로잡았습니다.
+- 다른 PC에서는 `codex/dmfoot-readiness-audit`를 가져와 [공개 검증 기록](runs/2026-11-18_readiness-contract/production-verification.json)과 [재검증 절차](runs/2026-11-18_readiness-contract/README.md)를 읽으세요.
+
 ## 2026-07-07 initial repository and webpage audit
 
 ### Repository state
