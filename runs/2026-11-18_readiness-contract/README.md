@@ -10,6 +10,8 @@
 - Synology 후보의 기존 `npm run test:readiness`가 Supabase와 Google Drive 합성 요청에서 통과했습니다.
 - 검증 자료만 별도 브랜치에 기록했습니다. 기존 checkout의 특허 문서 미커밋 변경을 보존하기 위해 Git 작업트리를 분리했습니다.
 
+공개 HTML 네 페이지에서 명시적인 아이콘이나 매니페스트 링크가 없음을 확인했습니다. 브라우저의 기본 탐색 경로인 `/favicon.ico`는 HTTP 404를 반환했습니다.
+
 ## 재검증
 
 1. 이 브랜치의 GitHub 원격을 가져와 `backup.md`와 검증 JSON을 확인합니다.

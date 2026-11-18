@@ -64,5 +64,15 @@
     "synology_candidate_mocked_readiness_tests": "pass",
     "live_storage_read_write": false,
     "live_account_login": false
+  },
+  "favicon": {
+    "public_pages_checked": [
+      "/",
+      "/admin.html",
+      "/clinician.html",
+      "/sensor.html"
+    ],
+    "explicit_icon_or_manifest_links": 0,
+    "implicit_favicon_ico_http": 404
   }
 }
