@@ -8,6 +8,12 @@
 - `npm run check`, `npm run build`, 네 HTML의 아이콘 연결, Node의 ICO HTTP 200과 MIME 형식, 이미지 크기, 패키지 버전 및 GitHub Pages 목록을 검증했습니다.
 - ICO 소스와 빌드 출력의 SHA-256은 모두 `15b598cc650c4a335b8df2d86285fd86c62614965cfa80eaeb45188133492731`입니다. 기존 공개 상태 확인 경로는 `/api/health`입니다.
 
+## 운영 배포 확인
+
+- GitHub `main`에 v0.2.4 `715bf00dc1fa4b265eb209a20bc15538f430abae`를 게시했습니다. Vercel Production 배포 7899547555와 GitHub Pages 작업 44423239204가 모두 성공했습니다.
+- Vercel과 GitHub Pages의 네 HTML 파일에서 파비콘 링크를 확인했습니다. 두 사이트의 `/favicon.ico`는 HTTP 200과 올바른 MIME 형식으로 응답했고 파일 SHA-256이 로컬 빌드와 일치했습니다.
+- Vercel의 `/api/health`도 HTTP 200과 `ok: true`를 반환했습니다. 운영 계정 로그인과 실제 저장소 연결은 검증하지 않았습니다. [운영 검증 JSON](production-verification.json)
+
 ## 이어서 검증하기
 
 1. `npm run check`와 `npm run build`를 실행합니다.

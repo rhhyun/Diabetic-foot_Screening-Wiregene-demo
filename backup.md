@@ -4,6 +4,7 @@
 
 - 공개 홈페이지와 관리자·임상의·센서 페이지에 Wiregene 파비콘을 연결했습니다. ICO는 Vercel 정적 빌드와 GitHub Pages에 포함됩니다.
 - 운영 소스 v0.2.1에서 시작했고, 미병합 Synology 후보의 v0.2.3 다음 번호인 v0.2.4를 사용했습니다. 공개 운영 상태 확인은 `/api/health`입니다.
+- GitHub 라이브 소스는 `715bf00dc1fa4b265eb209a20bc15538f430abae`입니다. Vercel과 GitHub Pages의 아이콘이 모두 HTTP 200이고, 두 자산의 SHA-256은 로컬 빌드와 일치했습니다. [운영 검증 JSON](runs/2026-11-18_favicon-v0.2.4/production-verification.json)
 - 다른 PC에서는 `codex/dmfoot-v0.2.4-favicon`을 가져온 뒤 [작업 및 검증 절차](runs/2026-11-18_favicon-v0.2.4/README.md)를 확인합니다.
 
 ## 2026-07-07 initial repository and webpage audit

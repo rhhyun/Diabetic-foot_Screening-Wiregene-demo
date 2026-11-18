@@ -1,0 +1,95 @@
+{
+  "production": {
+    "/": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel",
+      "relative_icon_link": true
+    },
+    "/admin.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel",
+      "relative_icon_link": true
+    },
+    "/clinician.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel",
+      "relative_icon_link": true
+    },
+    "/sensor.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "Vercel",
+      "relative_icon_link": true
+    },
+    "/favicon.ico": {
+      "http": 200,
+      "content_type": "image/vnd.microsoft.icon",
+      "server": "Vercel",
+      "sha256": "15b598cc650c4a335b8df2d86285fd86c62614965cfa80eaeb45188133492731",
+      "bytes": 5351
+    },
+    "/api/health": {
+      "http": 200,
+      "content_type": "application/json; charset=utf-8",
+      "server": "Vercel",
+      "ok": true,
+      "storage_kind": "remote"
+    }
+  },
+  "github_pages": {
+    "/": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "GitHub.com",
+      "relative_icon_link": true
+    },
+    "/admin.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "GitHub.com",
+      "relative_icon_link": true
+    },
+    "/clinician.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "GitHub.com",
+      "relative_icon_link": true
+    },
+    "/sensor.html": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "server": "GitHub.com",
+      "relative_icon_link": true
+    },
+    "/favicon.ico": {
+      "http": 200,
+      "content_type": "image/vnd.microsoft.icon",
+      "server": "GitHub.com",
+      "sha256": "15b598cc650c4a335b8df2d86285fd86c62614965cfa80eaeb45188133492731",
+      "bytes": 5351
+    }
+  },
+  "checked_at": "2026-11-18T23:45:34.115637+00:00",
+  "version": "0.2.4",
+  "release_commit": "715bf00dc1fa4b265eb209a20bc15538f430abae",
+  "production_url": "https://dmfoot.wiregene.com",
+  "github_pages_url": "https://rhhyun.github.io/Diabetic-foot_Screening-Wiregene-demo",
+  "vercel_preview_deployment": {
+    "id": 7899538785,
+    "status": "success"
+  },
+  "vercel_production_deployment": {
+    "id": 7899547555,
+    "status": "success"
+  },
+  "github_pages_deployment": {
+    "id": 7899548676,
+    "workflow_run": 44423239204,
+    "status": "success"
+  },
+  "authenticated_login_checked": false,
+  "live_storage_access_checked": false
+}
